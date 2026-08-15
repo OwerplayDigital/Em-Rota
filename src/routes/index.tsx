@@ -18,7 +18,9 @@ function Index() {
     setStatus('loading');
     try {
       const webhookUrl = `${window.location.origin}/api/public/telegram-webhook`;
+      console.log("Requesting webhook setup for:", webhookUrl);
       const result = await setupWebhook({ data: { webhookUrl } });
+      console.log("Setup result:", result);
       
       if (result.success) {
         setWebhookInfo(result.info);
@@ -29,6 +31,7 @@ function Index() {
         toast.error(`Erro: ${result.error}`);
       }
     } catch (err) {
+      console.error("Setup error:", err);
       setStatus('error');
       toast.error("Erro ao conectar webhook. Verifique os Secrets.");
     }
