@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { configureTelegramWebhook } from "@/lib/telegram.functions";
+import { getTelegramWebhookStatus } from "@/lib/telegram-status.functions";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { CheckCircle2, AlertCircle, Loader2, Bot, ExternalLink, ShieldCheck } from "lucide-react";
