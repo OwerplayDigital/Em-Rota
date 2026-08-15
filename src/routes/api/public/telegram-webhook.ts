@@ -34,7 +34,7 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
           }
 
           if (textInput === 'INICIAR JORNADA') {
-            const { data: active } = await supabaseAdmin.from('sessions').select('*').eq('status', 'active').maybeSingle();
+            const { data: active } = await supabaseAdmin.from('sessions').select('*').eq('status', 'active' as any).maybeSingle();
             if (active) {
               await send('⚠️ Já existe uma jornada ativa.');
             } else {
@@ -46,12 +46,12 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
               if (!existingDay) {
                 const { data: newDay } = await (supabaseAdmin.from('work_days').insert({ date: today, status: 'in_progress' as any }).select().single() as any);
                 if (newDay) {
-                  dayId = newDay.id;
-                  odoStart = newDay.odometer_start;
+                  dayId = newDay.id as string;
+                  odoStart = newDay.odometer_start as number | null;
                 }
               } else {
-                dayId = (existingDay as any).id;
-                odoStart = (existingDay as any).odometer_start;
+                dayId = (existingDay as any).id as string;
+                odoStart = (existingDay as any).odometer_start as number | null;
               }
 
               if (dayId && odoStart === null) {
@@ -65,7 +65,7 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
           }
 
           if (textInput === 'ENCERRAR JORNADA') {
-            const { data: session } = await supabaseAdmin.from('sessions').select('*').eq('status', 'active').maybeSingle();
+            const { data: session } = await supabaseAdmin.from('sessions').select('*').eq('status', 'active' as any).maybeSingle();
             if (!session) {
               await send('❌ Nenhuma jornada ativa encontrada.');
             } else {
@@ -76,7 +76,7 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
           }
 
           if (textInput === 'FECHAR DIA') {
-            const { data: active } = await supabaseAdmin.from('sessions').select('*').eq('status', 'active').maybeSingle();
+            const { data: active } = await supabaseAdmin.from('sessions').select('*').eq('status', 'active' as any).maybeSingle();
             if (active) {
               await send('⚠️ Encerre a jornada antes de fechar o dia.');
             } else {
