@@ -6,5 +6,4 @@ export const Route = createFileRoute("/")({
       to: '/dashboard',
     });
   },
-});
-
+})
