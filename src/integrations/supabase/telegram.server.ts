@@ -80,7 +80,7 @@ export const handleTelegramUpdate = async (body: any) => {
     const perKm = (distance && distance > 0 && day.total_earned !== null) ? (day.total_earned / distance) : null;
     const perDelivery = (day.total_deliveries && day.total_deliveries > 0 && day.total_earned !== null) ? (day.total_earned / day.total_deliveries) : null;
 
-    return `<b>RESUMO DE HOJE</b>\n\n` +
+    return `<b>RESUMO DE ${formatDateBR(day.date)}</b>\n\n` +
       `<b>Ganhos:</b>\n${formatCurrency(day.total_earned)}\n\n` +
       `<b>Entregas:</b>\n${day.total_deliveries ?? 'Ainda não informado'}\n\n` +
       `<b>Distância:</b>\n${distance !== null ? `${distance} km` : 'Ainda não informado'}\n\n` +
