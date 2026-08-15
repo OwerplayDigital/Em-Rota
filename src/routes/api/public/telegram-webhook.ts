@@ -17,7 +17,6 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
           const body = await request.json();
           console.log('Received Telegram update:', JSON.stringify(body));
 
-          const message = body.message || body.callback_query?.message;
           const from = body.message?.from || body.callback_query?.from;
           const chatId = from?.id?.toString();
           const text = body.message?.text;
@@ -46,7 +45,7 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
             await handleFecharDia(botToken, chatId);
           } else if (input === '/cancelar') {
             await sendTelegramMessage(botToken, chatId, 'Operação cancelada.', getMainKeyboard());
-          } else if (/^\d+([.,]\d+)?$/.test(input)) {
+          } else if (input && /^\d+([.,]\d+)?$/.test(input)) {
             // Handle numeric input for odometer, deliveries, or earnings
             await handleNumericInput(botToken, chatId, input);
           } else {
@@ -108,7 +107,7 @@ async function handleIniciarJornada(token: string, chatId: string) {
     .from('sessions')
     .select('id')
     .eq('status', 'active')
-    .single();
+    .maybeSingle();
 
   if (activeSession) {
     await sendTelegramMessage(token, chatId, 'Existe uma jornada em andamento. Encerre-a antes de iniciar uma nova.');
@@ -120,7 +119,7 @@ async function handleIniciarJornada(token: string, chatId: string) {
     .from('work_days')
     .select('*')
     .eq('date', today)
-    .single();
+    .maybeSingle();
 
   if (!workDay) {
     const { data: newWorkDay, error } = await supabaseAdmin
@@ -136,25 +135,25 @@ async function handleIniciarJornada(token: string, chatId: string) {
     workDay = newWorkDay;
   }
 
-  if (workDay.status === 'completed') {
+  if (workDay && workDay.status === 'completed') {
     await sendTelegramMessage(token, chatId, 'Este dia já foi fechado. Não é possível iniciar novas jornadas.');
     return;
   }
 
-  if (workDay.odometer_start === null) {
+  if (workDay && workDay.odometer_start === null) {
     await sendTelegramMessage(token, chatId, 'Qual é o odômetro atual da bike?');
-  } else {
+  } else if (workDay) {
     // Start session directly if odometer is already recorded
     const { error: sessionError } = await supabaseAdmin
       .from('sessions')
-      .insert({ work_day_id: workDay.id, status: 'active', start_time: new Date().toISOString() as string });
+      .insert({ work_day_id: workDay.id, status: 'active', start_time: new Date().toISOString() });
 
     if (sessionError) {
       await sendTelegramMessage(token, chatId, 'Erro ao iniciar a jornada.');
       return;
     }
 
-    const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) as string;
+    const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     await sendTelegramMessage(token, chatId, `Jornada iniciada às ${now}.\nOdômetro inicial: ${workDay.odometer_start} km.`);
   }
 }
@@ -164,7 +163,7 @@ async function handleEncerrarJornada(token: string, chatId: string) {
     .from('sessions')
     .select('*, work_days(*)')
     .eq('status', 'active')
-    .single();
+    .maybeSingle();
 
   if (!activeSession || sessionFetchError) {
     await sendTelegramMessage(token, chatId, 'Não há nenhuma jornada ativa para encerrar.');
@@ -222,7 +221,7 @@ async function handleFecharDia(token: string, chatId: string) {
     .from('sessions')
     .select('id')
     .eq('status', 'active')
-    .single();
+    .maybeSingle();
 
   if (activeSession) {
     await sendTelegramMessage(token, chatId, 'Você ainda tem uma jornada ativa. Encerre-a antes de fechar o dia.');
@@ -233,7 +232,7 @@ async function handleFecharDia(token: string, chatId: string) {
     .from('work_days')
     .select('*')
     .eq('date', today)
-    .single();
+    .maybeSingle();
 
   if (!workDay) {
     await sendTelegramMessage(token, chatId, 'Nenhuma atividade registrada para hoje.');
@@ -256,7 +255,7 @@ async function handleNumericInput(token: string, chatId: string, input: string) 
     .from('work_days')
     .select('*')
     .eq('date', today)
-    .single();
+    .maybeSingle();
 
   if (!workDay || workDay.status === 'completed') return;
 
@@ -275,9 +274,9 @@ async function handleNumericInput(token: string, chatId: string, input: string) 
     // After saving odometer, start the first session
     await supabaseAdmin
       .from('sessions')
-      .insert({ work_day_id: workDay.id, status: 'active', start_time: new Date().toISOString() as string });
+      .insert({ work_day_id: workDay.id, status: 'active', start_time: new Date().toISOString() });
 
-    const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) as string;
+    const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     await sendTelegramMessage(token, chatId, `Odômetro inicial salvo: ${Math.round(value)} km.\nJornada iniciada às ${now}.`);
     return;
   }
@@ -315,7 +314,7 @@ async function handleNumericInput(token: string, chatId: string, input: string) 
   }
 
   // Flow 4: total_earned
-  if (workDay.total_earned === 0 || workDay.total_earned === null || workDay.total_earned === 0.00) {
+  if (workDay.total_earned === 0 || workDay.total_earned === null || Number(workDay.total_earned) === 0.00) {
      const { error } = await supabaseAdmin
       .from('work_days')
       .update({ 
@@ -341,7 +340,7 @@ async function handleResumo(token: string, chatId: string) {
     .from('work_days')
     .select('*, sessions(*)')
     .eq('date', today)
-    .single();
+    .maybeSingle();
 
   if (!workDay) {
     await sendTelegramMessage(token, chatId, 'Nenhuma atividade registrada hoje.');
@@ -371,7 +370,7 @@ async function handleResumo(token: string, chatId: string) {
     return `${h}h${m.toString().padStart(2, '0')}min`;
   };
 
-  let msg = `<b>Resumo de Hoje (${(workDay.date as unknown) as string})</b>\n\n`;
+  let msg = `<b>Resumo de Hoje (${workDay.date})</b>\n\n`;
   msg += `Ganhos: R$ ${earnings.toFixed(2)}\n`;
   msg += `Km rodados: ${km} km\n`;
   msg += `Tempo total: ${formatDuration(totalDurationMs)}\n`;
