@@ -21,7 +21,7 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
           if (!msg || String(msg.from?.id) !== allowedUserId) return new Response('OK');
 
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const text = msg.text || '';
+          const text = (msg.text || '') as string;
 
           // 1. /start
           if (text === '/start') {
@@ -40,20 +40,20 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
             } else {
               const today = new Date().toISOString().split('T')[0];
               const { data: existingDay } = await supabaseAdmin.from('work_days').select('*').eq('date', today).maybeSingle();
-              let dayId: string;
+              let dayId: string = '';
               let odometerStart: number | null = null;
               
               if (!existingDay) {
                 const { data: newDay } = await supabaseAdmin.from('work_days').insert({ date: today, status: 'in_progress' }).select().single();
-                dayId = (newDay as any).id;
+                if (newDay) dayId = (newDay as any).id;
               } else {
                 dayId = (existingDay as any).id;
                 odometerStart = (existingDay as any).odometer_start;
               }
 
-              if (odometerStart === null) {
+              if (dayId && odometerStart === null) {
                 await send('Por favor, informe o odômetro inicial (apenas números):');
-              } else {
+              } else if (dayId) {
                 await supabaseAdmin.from('sessions').insert({ work_day_id: dayId, status: 'active' });
                 await send('🚀 Jornada iniciada com sucesso!');
               }
@@ -89,7 +89,7 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
             const today = new Date().toISOString().split('T')[0];
             const { data: day } = await supabaseAdmin.from('work_days').select('*, sessions(*)').eq('date', today).maybeSingle();
             if (!day) await send('Nenhum dado para hoje.');
-            else await send(`📊 Resumo do Dia (${(day as any).date}):\nStatus: ${(day as any).status}\nOdômetro: ${(day as any).odometer_start || '?'} - ${(day as any).odometer_end || '?'}\nJornadas: ${(day as any).sessions?.length || 0}`);
+            else await send(`📊 Resumo do Dia (${(day as any).date || today}):\nStatus: ${(day as any).status || '?'}\nOdômetro: ${(day as any).odometer_start || '?'} - ${(day as any).odometer_end || '?'}\nJornadas: ${(day as any).sessions?.length || 0}`);
             return new Response('OK');
           }
 
