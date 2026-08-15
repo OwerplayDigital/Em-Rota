@@ -77,10 +77,11 @@ export const handleTelegramUpdate = async (body: any) => {
     else {
       const dayWithSessions = await (supabaseAdmin.from('work_days').select('*, sessions(*)').eq('date', today).maybeSingle() as any);
       const d = dayWithSessions.data || dayRes.data;
+      const dateString = (d.date || today) as string;
       const odoS = d.odometer_start ?? '?';
       const odoE = d.odometer_end ?? '?';
       const sessCount = d.sessions?.length ?? 0;
-      await send(`📊 Resumo do Dia (${d.date}):\nStatus: ${d.status}\nOdômetro: ${odoS} - ${odoE}\nJornadas: ${sessCount}`);
+      await send(`📊 Resumo do Dia (${dateString}):\nStatus: ${d.status}\nOdômetro: ${odoS} - ${odoE}\nJornadas: ${sessCount}`);
     }
     return;
   }
