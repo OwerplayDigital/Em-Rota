@@ -201,6 +201,7 @@ export const handleTelegramUpdate = async (body: any) => {
       await send('Nenhum dado para hoje.', mainMenu);
       return;
     }
+    await (supabaseAdmin.from('work_days').update({ notes: 'AWAITING:CLOSE_ODO' }).eq('id', activeDay.id) as any);
     await send('Qual é o odômetro final da bike?', cancelMenu);
     return;
   }
@@ -300,6 +301,37 @@ export const handleTelegramUpdate = async (body: any) => {
       return;
     }
 
+    if (activeDay.notes === 'AWAITING:CLOSE_ODO') {
+      if (num < (activeDay.odometer_start || 0)) {
+        await send(`⚠️ O odômetro final não pode ser menor que o inicial (${activeDay.odometer_start}). Informe novamente:`, cancelMenu);
+        return;
+      }
+      await (supabaseAdmin.from('work_days').update({ odometer_end: num, notes: 'AWAITING:CLOSE_EARNINGS' }).eq('id', activeDay.id) as any);
+      await send('Quanto você ganhou hoje?', cancelMenu);
+      return;
+    }
+
+    if (activeDay.notes === 'AWAITING:CLOSE_EARNINGS') {
+      await (supabaseAdmin.from('work_days').update({ total_earned: num, notes: 'AWAITING:CLOSE_DELIVERIES' }).eq('id', activeDay.id) as any);
+      await send('Quantas entregas você fez hoje?', cancelMenu);
+      return;
+    }
+
+    if (activeDay.notes === 'AWAITING:CLOSE_DELIVERIES') {
+      const res = await (supabaseAdmin.from('work_days').update({ 
+        total_deliveries: Math.round(num), 
+        status: 'completed' as any,
+        notes: null 
+      }).eq('id', activeDay.id).select().single() as any);
+      const summary = await getSummary(res.data);
+      await send(`<b>DIA FECHADO</b>\n\n${summary}`, {
+        keyboard: [[{ text: 'CORRIGIR DIA' }, { text: 'RESUMO' }], [{ text: 'MENU' }]],
+        resize_keyboard: true
+      });
+      return;
+    }
+
+    // Fallback para lógica antiga caso notes esteja vazio mas o fluxo esteja no meio
     if (activeDay.status === 'in_progress' && activeDay.odometer_end === null) {
       if (num < activeDay.odometer_start) {
         await send(`⚠️ O odômetro final não pode ser menor que o inicial (${activeDay.odometer_start}). Informe novamente:`, cancelMenu);
