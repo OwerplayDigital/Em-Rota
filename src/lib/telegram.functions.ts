@@ -12,14 +12,11 @@ export const configureTelegramWebhook = createServerFn({ method: "POST" })
       throw new Error("TELEGRAM_BOT_TOKEN not found in environment secrets.");
     }
 
-    console.log(`[Config] Setting webhook to: ${data.webhookUrl}`);
-
     // 1. Set Webhook
-    const setUrl = `https://api.telegram.org/bot${botToken}/setWebhook?url=${encodeURIComponent(data.webhookUrl)}`;
+    // We add drop_pending_updates=true to clear the queue of 302 errors
+    const setUrl = `https://api.telegram.org/bot${botToken}/setWebhook?url=${encodeURIComponent(data.webhookUrl)}&drop_pending_updates=true`;
     const setRes = await fetch(setUrl);
     const setResult = await setRes.json();
-
-    console.log(`[Config] setWebhook result:`, JSON.stringify(setResult));
 
     if (!setResult.ok) {
       return {
@@ -33,8 +30,6 @@ export const configureTelegramWebhook = createServerFn({ method: "POST" })
     const infoUrl = `https://api.telegram.org/bot${botToken}/getWebhookInfo`;
     const infoRes = await fetch(infoUrl);
     const infoResult = await infoRes.json();
-    
-    console.log(`[Config] getWebhookInfo result:`, JSON.stringify(infoResult));
 
     return {
       success: true,
