@@ -29,12 +29,12 @@ export const handleTelegramUpdate = async (body: any) => {
 
   const formatCurrency = (val: number | null) => val ? `R$ ${val.toFixed(2).replace('.', ',')}` : 'Ainda não informado';
 
-  const getActiveWorkDay = async () => {
-    const { data } = await supabaseAdmin.from('work_days').select('*').eq('date', today).maybeSingle();
-    return data as any;
+  const getActiveWorkDay = async (): Promise<any> => {
+    const res = await supabaseAdmin.from('work_days').select('*').eq('date', today).maybeSingle();
+    return res.data;
   };
 
-  const getActiveSession = async () => {
+  const getActiveSession = async (): Promise<any> => {
     const activeRes = await supabaseAdmin.from('sessions').select('*').eq('status', 'active' as any).maybeSingle();
     return activeRes.data;
   };
@@ -184,14 +184,14 @@ export const handleTelegramUpdate = async (body: any) => {
     if (!activeDay || activeDay.odometer_start === null) {
       // First odo of the day
       let day = activeDay;
-    if (!day) {
-      const { data } = await (supabaseAdmin.from('work_days').insert({ date: today, odometer_start: num, status: 'in_progress' as any }).select().single() as any);
-      day = data;
-    } else {
-      await supabaseAdmin.from('work_days').update({ odometer_start: num }).eq('id', day.id);
-    }
-    if (!day) return;
-    await supabaseAdmin.from('sessions').insert({ work_day_id: day.id, status: 'active' as any });
+      if (!day) {
+        const res = await (supabaseAdmin.from('work_days').insert({ date: today, odometer_start: num, status: 'in_progress' as any }).select().single() as any);
+        day = res.data;
+      } else {
+        await supabaseAdmin.from('work_days').update({ odometer_start: num }).eq('id', day.id);
+      }
+      if (!day) return;
+      await supabaseAdmin.from('sessions').insert({ work_day_id: day.id, status: 'active' as any });
       await send('Jornada iniciada!', {
         keyboard: [[{ text: 'ENCERRAR JORNADA' }, { text: 'RESUMO' }]],
         resize_keyboard: true
@@ -216,8 +216,8 @@ export const handleTelegramUpdate = async (body: any) => {
     }
 
     if (activeDay.total_deliveries === null) {
-      const { data: updatedDay } = await supabaseAdmin.from('work_days').update({ total_deliveries: Math.round(num), status: 'completed' as any }).eq('id', activeDay.id).select().single();
-      const summary = await getSummary(updatedDay);
+      const res = await (supabaseAdmin.from('work_days').update({ total_deliveries: Math.round(num), status: 'completed' as any }).eq('id', activeDay.id).select().single() as any);
+      const summary = await getSummary(res.data);
       await send(`<b>DIA FECHADO</b>\n\n${summary}`, {
         keyboard: [[{ text: 'RESUMO' }, { text: 'MENU PRINCIPAL' }]],
         resize_keyboard: true
