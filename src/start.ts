@@ -24,7 +24,7 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
 const csrfMiddleware = createCsrfMiddleware({
   filter: (ctx) => {
     const url = new URL(ctx.request.url);
-    if (url.pathname.startsWith('/api/public/')) {
+    if (url.pathname === '/api/public/telegram-webhook') {
       return false;
     }
     return ctx.handlerType === "serverFn";
