@@ -200,5 +200,21 @@ function SmallMetric({ label, value }: { label: string; value: string }) {
   )
 }
 
-
+function EmptyState({ icon: Icon, text, subtext }: { icon: any; text: string; subtext?: string }) {
+  return (
+    <div className="h-[280px] w-full flex items-center justify-center border border-dashed border-border rounded-3xl bg-muted/10 group hover:bg-muted/20 transition-colors">
+      <div className="text-center space-y-3 p-8">
+        <div className="w-12 h-12 rounded-2xl bg-muted/20 flex items-center justify-center mx-auto mb-4 border border-border">
+          <Icon className="w-6 h-6 text-muted-foreground/40" />
+        </div>
+        <p className="text-muted-foreground/60 text-xs uppercase tracking-[0.2em] font-bold">{text}</p>
+        {subtext && (
+          <p className="text-muted-foreground/40 text-[10px] max-w-[200px] leading-relaxed mx-auto">
+            {subtext}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
 
