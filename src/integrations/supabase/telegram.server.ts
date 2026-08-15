@@ -18,7 +18,16 @@ export const handleTelegramUpdate = async (body: any) => {
   if (!msg || String(msg.from?.id) !== allowedUserId) return;
 
   const textInput = (msg.text || '') as string;
-  const today = new Date().toISOString().split('T')[0];
+  const getUserToday = () => {
+    return new Intl.DateTimeFormat('en-CA', { 
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(new Date());
+  };
+  const today = getUserToday();
+
   
   // Helpers
   const formatDuration = (ms: number) => {
@@ -86,7 +95,7 @@ export const handleTelegramUpdate = async (body: any) => {
     let statusMsg = activeSession ? '🏃 Jornada em andamento.' : '⏸️ Nenhuma jornada ativa.';
     if (activeDay?.status === 'completed') statusMsg = '🏁 Dia fechado.';
     
-    await send(`<b>DIÁRIA</b>\n\n${statusMsg}`, mainMenu);
+    await send(`<b>EM ROTA</b>\n\n${statusMsg}`, mainMenu);
     return;
   }
 
