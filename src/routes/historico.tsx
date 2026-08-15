@@ -1,10 +1,19 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { X, Calendar, DollarSign, Package, MapPin, Clock, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { fetchDashboardData } from '@/lib/dashboard.functions'
+import { 
+  formatDateBR, 
+  formatTimeBR, 
+  formatDuration, 
+  formatCurrency,
+  calculateMetrics
+} from '@/lib/dashboard-utils'
 
 export const Route = createFileRoute('/historico')({
   component: HistoryPage,
@@ -12,6 +21,30 @@ export const Route = createFileRoute('/historico')({
 
 function HistoryPage() {
   const [selectedDay, setSelectedDay] = useState<any>(null)
+  
+  // For history we want a broader range, e.g., last 365 days or "Este ano" as default
+  const { data } = useSuspenseQuery({
+    queryKey: ['dashboard', 'history-all'],
+    queryFn: () => fetchDashboardData({ 
+      data: { 
+        startDate: '2020-01-01', // Get all history
+        endDate: new Date().toISOString().split('T')[0]
+      } 
+    })
+  })
+
+  const historyItems = useMemo(() => {
+    return data.workDays.map(wd => {
+      const daySessions = data.sessions.filter(s => s.work_day_id === wd.id);
+      const metrics = calculateMetrics([wd], daySessions);
+      return {
+        ...wd,
+        metrics,
+        daySessions
+      };
+    });
+  }, [data]);
+
 
   return (
     <div className="p-6 md:p-10 space-y-8 bg-background min-h-screen text-foreground relative overflow-hidden">
