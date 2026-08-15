@@ -98,14 +98,15 @@ function DashboardPage() {
                 <AreaChart data={chartData}>
                   <defs>
                     <linearGradient id="colorEarned" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="oklch(var(--primary))" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="oklch(var(--primary))" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(var(--border))" vertical={false} opacity={0.2} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} opacity={0.2} />
                   <XAxis 
                     dataKey="displayDate" 
-                    stroke="oklch(var(--muted-foreground))" 
+                    stroke="var(--color-muted-foreground)" 
+
                     fontSize={10} 
                     axisLine={false} 
                     tickLine={false} 
@@ -113,27 +114,28 @@ function DashboardPage() {
                     minTickGap={20}
                   />
                   <YAxis 
-                    stroke="oklch(var(--muted-foreground))" 
+                    stroke="var(--color-muted-foreground)" 
+
                     fontSize={10} 
                     axisLine={false} 
                     tickLine={false} 
                     tickFormatter={(value) => `R$ ${value}`} 
                   />
                   <Tooltip 
-                    contentStyle={{ backgroundColor: 'oklch(var(--card))', border: '1px solid oklch(var(--border))', borderRadius: '1rem', fontSize: '10px' }}
-                    itemStyle={{ color: 'oklch(var(--foreground))' }}
-                    cursor={{ stroke: 'oklch(var(--primary))', strokeWidth: 1, strokeDasharray: '4 4' }}
+                    contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '1rem', fontSize: '10px' }}
+                    itemStyle={{ color: 'var(--color-foreground)' }}
+                    cursor={{ stroke: 'var(--color-primary)', strokeWidth: 1, strokeDasharray: '4 4' }}
                     formatter={(value: any) => [formatCurrency(Number(value)), 'Ganhos']}
                   />
                   <Area 
                     type="monotone" 
                     dataKey="earned" 
                     name="Ganhos" 
-                    stroke="oklch(var(--primary))" 
+                    stroke="var(--color-primary)" 
                     fillOpacity={1} 
                     fill="url(#colorEarned)" 
                     strokeWidth={2}
-                    activeDot={{ r: 4, fill: 'oklch(var(--primary))', stroke: 'oklch(var(--background))', strokeWidth: 2 }}
+                    activeDot={{ r: 4, fill: 'var(--color-primary)', stroke: 'var(--color-background)', strokeWidth: 2 }}
                     connectNulls
                   />
                 </AreaChart>
@@ -150,16 +152,16 @@ function DashboardPage() {
               <div className="h-[280px] w-full pt-4">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="oklch(var(--border))" vertical={false} opacity={0.2} />
-                    <XAxis dataKey="displayDate" stroke="oklch(var(--muted-foreground))" fontSize={10} axisLine={false} tickLine={false} dy={10} />
-                    <YAxis stroke="oklch(var(--muted-foreground))" fontSize={10} axisLine={false} tickLine={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} opacity={0.2} />
+                    <XAxis dataKey="displayDate" stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} dy={10} />
+                    <YAxis stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} />
                     <Tooltip 
-                      contentStyle={{ backgroundColor: 'oklch(var(--card))', border: '1px solid oklch(var(--border))', borderRadius: '1rem', fontSize: '10px' }}
-                      itemStyle={{ color: 'oklch(var(--foreground))' }}
-                      cursor={{ fill: 'oklch(var(--primary) / 0.1)' }}
+                      contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '1rem', fontSize: '10px' }}
+                      itemStyle={{ color: 'var(--color-foreground)' }}
+                      cursor={{ fill: 'var(--color-primary)', fillOpacity: 0.1 }}
                       formatter={(value: any) => [value, 'Entregas']}
                     />
-                    <Bar dataKey="deliveries" name="Entregas" fill="oklch(var(--primary))" radius={[4, 4, 0, 0]} barSize={32} />
+                    <Bar dataKey="deliveries" name="Entregas" fill="var(--color-primary)" radius={[4, 4, 0, 0]} barSize={32} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -173,16 +175,16 @@ function DashboardPage() {
               <div className="h-[280px] w-full pt-4">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="oklch(var(--border))" vertical={false} opacity={0.2} />
-                    <XAxis dataKey="displayDate" stroke="oklch(var(--muted-foreground))" fontSize={10} axisLine={false} tickLine={false} dy={10} />
-                    <YAxis stroke="oklch(var(--muted-foreground))" fontSize={10} axisLine={false} tickLine={false} tickFormatter={(value) => `${value}h`} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} opacity={0.2} />
+                    <XAxis dataKey="displayDate" stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} dy={10} />
+                    <YAxis stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} tickFormatter={(value) => `${value}h`} />
                     <Tooltip 
-                      contentStyle={{ backgroundColor: 'oklch(var(--card))', border: '1px solid oklch(var(--border))', borderRadius: '1rem', fontSize: '10px' }}
-                      itemStyle={{ color: 'oklch(var(--foreground))' }}
-                      cursor={{ fill: 'oklch(var(--primary) / 0.1)' }}
+                      contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '1rem', fontSize: '10px' }}
+                      itemStyle={{ color: 'var(--color-foreground)' }}
+                      cursor={{ fill: 'var(--color-primary)', fillOpacity: 0.1 }}
                       formatter={(value: any) => [`${Number(value).toFixed(1)}h`, 'Tempo']}
                     />
-                    <Bar dataKey="hours" name="Horas" fill="oklch(var(--primary))" opacity={0.8} radius={[4, 4, 0, 0]} barSize={32} />
+                    <Bar dataKey="hours" name="Horas" fill="var(--color-primary)" opacity={0.8} radius={[4, 4, 0, 0]} barSize={32} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
