@@ -24,7 +24,8 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
 const csrfMiddleware = createCsrfMiddleware({
   filter: (ctx) => {
     // Disable CSRF for public API routes
-    if (ctx.request.url.includes('/api/public/')) return false;
+    const url = new URL(ctx.request.url);
+    if (url.pathname.startsWith('/api/public/')) return false;
     return ctx.handlerType === "serverFn";
   },
 });
