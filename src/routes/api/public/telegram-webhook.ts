@@ -1,50 +1,43 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { supabaseAdmin } from '@/integrations/supabase/client.server';
 
-// Ensure the runtime is set to 'node' or 'workerd' correctly if needed, 
-// but TanStack Start handles this. We just need to ensure the response is a direct Response.
-
 export const Route = createFileRoute('/api/public/telegram-webhook')({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        // Log all incoming headers to debug 302/307 issues
-        const headers: Record<string, string> = {};
-        request.headers.forEach((v, k) => headers[k] = v);
-        console.log('[Webhook] Request Headers:', JSON.stringify(headers));
+        // Log basic info
+        console.log('[Webhook] POST received at /api/public/telegram-webhook');
+        
         const botToken = process.env['TELEGRAM_BOT_TOKEN'];
         const allowedUserId = process.env['TELEGRAM_ALLOWED_USER_ID'];
 
-        console.log(`[Webhook] Initialization. BotToken present: ${!!botToken}, AllowedUserID present: ${!!allowedUserId}`);
-        console.log(`[Webhook] AllowedUserID value: "${allowedUserId}"`);
-
         if (!botToken || !allowedUserId) {
-          console.error('Missing environment variables: TELEGRAM_BOT_TOKEN or TELEGRAM_ALLOWED_USER_ID');
-          return new Response('Configuration Error', { status: 500 });
+          console.error('[Webhook] Missing TELEGRAM_BOT_TOKEN or TELEGRAM_ALLOWED_USER_ID');
+          return new Response('Config Error', { status: 500 });
         }
 
         try {
           const body = await request.json();
-          console.log('Received Telegram update:', JSON.stringify(body));
+          console.log('[Webhook] Update Body:', JSON.stringify(body));
 
           const from = body.message?.from || body.callback_query?.from;
           const chatId = from?.id?.toString();
           const text = body.message?.text;
           const callbackData = body.callback_query?.data;
 
-          if (!chatId) return new Response('OK');
+          if (!chatId) return new Response('OK', { status: 200 });
 
           // 1. Authorization check
-          console.log(`[Webhook] Comparing: incoming chatId "${chatId}" (type: ${typeof chatId}) vs allowedUserId "${allowedUserId}" (type: ${typeof allowedUserId})`);
-          
+          console.log(`[Webhook] User check: ${chatId} vs ${allowedUserId}`);
           if (chatId !== allowedUserId) {
-            console.warn(`[Webhook] Access denied for chatId: ${chatId}`);
-            await sendTelegramMessage(botToken, chatId, 'Acesso negado. Este bot é privado.');
-            return new Response('Unauthorized', { status: 200 }); // Still return 200 to Telegram
+            console.warn(`[Webhook] Unauthorized user: ${chatId}`);
+            await sendTelegramMessage(botToken, chatId, 'Acesso negado.');
+            return new Response('Unauthorized', { status: 200 });
           }
 
-          // 2. Handle Commands and Callbacks
+          // 2. Handle Commands
           const input = (callbackData || text || '') as string;
+          console.log(`[Webhook] Processing input: ${input}`);
 
           if (input === '/start') {
             await sendStartMenu(botToken, chatId);
@@ -59,34 +52,25 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
           } else if (input === '/cancelar') {
             await sendTelegramMessage(botToken, chatId, 'Operação cancelada.', getMainKeyboard());
           } else if (input && /^\d+([.,]\d+)?$/.test(input)) {
-            // Handle numeric input for odometer, deliveries, or earnings
             await handleNumericInput(botToken, chatId, input);
           } else {
-            await sendTelegramMessage(botToken, chatId, 'Comando não reconhecido. Use o menu abaixo.', getMainKeyboard());
+            await sendTelegramMessage(botToken, chatId, 'Comando não reconhecido.', getMainKeyboard());
           }
 
-          return new Response('OK', { 
-            status: 200,
-            headers: {
-              'Content-Type': 'text/plain'
-            }
-          });
+          return new Response('OK', { status: 200, headers: { 'Content-Type': 'text/plain' } });
         } catch (error) {
-          console.error('Error processing Telegram webhook:', error);
-          return new Response('Internal Server Error', { status: 500 });
+          console.error('[Webhook] Processing error:', error);
+          return new Response('Error', { status: 500 });
         }
       },
     },
   },
 });
 
-// --- Helper Functions ---
-
 async function sendTelegramMessage(token: string, chatId: string, text: string, replyMarkup?: any) {
   const url = `https://api.telegram.org/bot${token}/sendMessage`;
-  console.log(`[Webhook] Sending message to ${chatId}: ${text.substring(0, 50)}...`);
   try {
-    const response = await fetch(url, {
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -96,13 +80,10 @@ async function sendTelegramMessage(token: string, chatId: string, text: string, 
         parse_mode: 'HTML',
       }),
     });
-    const result = await response.json();
-    console.log(`[Webhook] Telegram API response:`, JSON.stringify(result));
-    if (!result.ok) {
-      console.error(`[Webhook] Failed to send message: ${result.description}`);
-    }
-  } catch (error) {
-    console.error(`[Webhook] Error calling Telegram API:`, error);
+    const result = await res.json();
+    console.log(`[Webhook] sendMessage response for ${chatId}:`, JSON.stringify(result));
+  } catch (e) {
+    console.error(`[Webhook] sendMessage error:`, e);
   }
 }
 
@@ -125,292 +106,82 @@ async function sendStartMenu(token: string, chatId: string) {
   );
 }
 
-// --- Business Logic Handlers ---
-
 async function handleIniciarJornada(token: string, chatId: string) {
   const today = new Date().toISOString().split('T')[0]!;
-
-  // Check for active session
-  const { data: activeSession } = await supabaseAdmin
-    .from('sessions')
-    .select('id')
-    .eq('status', 'active')
-    .maybeSingle();
-
+  const { data: activeSession } = await supabaseAdmin.from('sessions').select('id').eq('status', 'active').maybeSingle();
   if (activeSession) {
-    await sendTelegramMessage(token, chatId, 'Existe uma jornada em andamento. Encerre-a antes de iniciar uma nova.');
+    await sendTelegramMessage(token, chatId, 'Existe uma jornada em andamento.');
     return;
   }
-
-  // Get or create work_day
-  let { data: workDay } = await supabaseAdmin
-    .from('work_days')
-    .select('*')
-    .eq('date', today)
-    .maybeSingle();
-
+  let { data: workDay } = await supabaseAdmin.from('work_days').select('*').eq('date', today).maybeSingle();
   if (!workDay) {
-    const { data: newWorkDay, error } = await supabaseAdmin
-      .from('work_days')
-      .insert({ date: today, status: 'in_progress' })
-      .select()
-      .single();
-    
-    if (error) {
-      await sendTelegramMessage(token, chatId, 'Erro ao criar o dia de trabalho.');
-      return;
-    }
+    const { data: newWorkDay, error } = await supabaseAdmin.from('work_days').insert({ date: today, status: 'in_progress' }).select().single();
+    if (error) return sendTelegramMessage(token, chatId, 'Erro ao criar o dia.');
     workDay = newWorkDay;
   }
-
-  if (workDay && workDay.status === 'completed') {
-    await sendTelegramMessage(token, chatId, 'Este dia já foi fechado. Não é possível iniciar novas jornadas.');
-    return;
-  }
-
-  if (workDay && workDay.odometer_start === null) {
+  if (workDay.status === 'completed') return sendTelegramMessage(token, chatId, 'Dia já fechado.');
+  if (workDay.odometer_start === null) {
     await sendTelegramMessage(token, chatId, 'Qual é o odômetro atual da bike?');
-  } else if (workDay) {
-    // Start session directly if odometer is already recorded
-    const { error: sessionError } = await supabaseAdmin
-      .from('sessions')
-      .insert({ work_day_id: workDay.id, status: 'active', start_time: new Date().toISOString() });
-
-    if (sessionError) {
-      await sendTelegramMessage(token, chatId, 'Erro ao iniciar a jornada.');
-      return;
-    }
-
-    const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    await sendTelegramMessage(token, chatId, `Jornada iniciada às ${now}.\nOdômetro inicial: ${workDay.odometer_start} km.`);
+  } else {
+    await supabaseAdmin.from('sessions').insert({ work_day_id: workDay.id, status: 'active', start_time: new Date().toISOString() });
+    await sendTelegramMessage(token, chatId, `Jornada iniciada às ${new Date().toLocaleTimeString('pt-BR')}.`);
   }
 }
 
 async function handleEncerrarJornada(token: string, chatId: string) {
-  const { data: activeSession, error: sessionFetchError } = await supabaseAdmin
-    .from('sessions')
-    .select('*, work_days(*)')
-    .eq('status', 'active')
-    .maybeSingle();
-
-  if (!activeSession || sessionFetchError) {
-    await sendTelegramMessage(token, chatId, 'Não há nenhuma jornada ativa para encerrar.');
-    return;
-  }
-
+  const { data: activeSession } = await supabaseAdmin.from('sessions').select('*, work_days(*)').eq('status', 'active').maybeSingle();
+  if (!activeSession) return sendTelegramMessage(token, chatId, 'Não há jornada ativa.');
   const endTime = new Date();
-  const startTime = new Date(activeSession.start_time);
-  const durationMs = endTime.getTime() - startTime.getTime();
-  
-  const { error: updateError } = await supabaseAdmin
-    .from('sessions')
-    .update({ 
-      status: 'completed', 
-      end_time: endTime.toISOString() 
-    })
-    .eq('id', activeSession.id);
-
-  if (updateError) {
-    await sendTelegramMessage(token, chatId, 'Erro ao encerrar a jornada.');
-    return;
-  }
-
-  // Calculate total time for the day
-  const { data: allSessions } = await supabaseAdmin
-    .from('sessions')
-    .select('start_time, end_time')
-    .eq('work_day_id', activeSession.work_day_id)
-    .eq('status', 'completed');
-
-  let totalDurationMs = 0;
-  allSessions?.forEach(s => {
-    if (s.start_time && s.end_time) {
-      totalDurationMs += new Date(s.end_time).getTime() - new Date(s.start_time).getTime();
-    }
-  });
-
-  const formatDuration = (ms: number) => {
-    const hours = Math.floor(ms / (1000 * 60 * 60));
-    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
-    return `${hours}h${minutes.toString().padStart(2, '0')}min`;
-  };
-
-  await sendTelegramMessage(
-    token, 
-    chatId, 
-    `Jornada encerrada.\nEsta jornada: ${formatDuration(durationMs)}\nTotal hoje: ${formatDuration(totalDurationMs)}`
-  );
+  await supabaseAdmin.from('sessions').update({ status: 'completed', end_time: endTime.toISOString() }).eq('id', activeSession.id);
+  await sendTelegramMessage(token, chatId, `Jornada encerrada às ${endTime.toLocaleTimeString('pt-BR')}.`);
 }
 
 async function handleFecharDia(token: string, chatId: string) {
   const today = new Date().toISOString().split('T')[0]!;
-
-  const { data: activeSession } = await supabaseAdmin
-    .from('sessions')
-    .select('id')
-    .eq('status', 'active')
-    .maybeSingle();
-
-  if (activeSession) {
-    await sendTelegramMessage(token, chatId, 'Você ainda tem uma jornada ativa. Encerre-a antes de fechar o dia.');
-    return;
-  }
-
-  const { data: workDay } = await supabaseAdmin
-    .from('work_days')
-    .select('*')
-    .eq('date', today)
-    .maybeSingle();
-
-  if (!workDay) {
-    await sendTelegramMessage(token, chatId, 'Nenhuma atividade registrada para hoje.');
-    return;
-  }
-
-  if (workDay.status === 'completed') {
-    await sendTelegramMessage(token, chatId, 'O dia de hoje já está fechado.');
-    return;
-  }
-
+  const { data: activeSession } = await supabaseAdmin.from('sessions').select('id').eq('status', 'active').maybeSingle();
+  if (activeSession) return sendTelegramMessage(token, chatId, 'Encerre a jornada antes.');
+  const { data: workDay } = await supabaseAdmin.from('work_days').select('*').eq('date', today).maybeSingle();
+  if (!workDay) return sendTelegramMessage(token, chatId, 'Sem atividade hoje.');
+  if (workDay.status === 'completed') return sendTelegramMessage(token, chatId, 'Dia já fechado.');
   await sendTelegramMessage(token, chatId, 'Qual é o odômetro final?');
 }
 
 async function handleNumericInput(token: string, chatId: string, input: string) {
   const value = parseFloat(input.replace(',', '.'));
   const today = new Date().toISOString().split('T')[0]!;
-
-  const { data: workDay } = await supabaseAdmin
-    .from('work_days')
-    .select('*')
-    .eq('date', today)
-    .maybeSingle();
-
+  const { data: workDay } = await supabaseAdmin.from('work_days').select('*').eq('date', today).maybeSingle();
   if (!workDay || workDay.status === 'completed') return;
 
-  // Flow 1: odometer_start
   if (workDay.odometer_start === null) {
-    const { error } = await supabaseAdmin
-      .from('work_days')
-      .update({ odometer_start: Math.round(value) })
-      .eq('id', workDay.id);
-
-    if (error) {
-      await sendTelegramMessage(token, chatId, 'Erro ao salvar o odômetro inicial.');
-      return;
-    }
-
-    // After saving odometer, start the first session
-    await supabaseAdmin
-      .from('sessions')
-      .insert({ work_day_id: workDay.id, status: 'active', start_time: new Date().toISOString() });
-
-    const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    await sendTelegramMessage(token, chatId, `Odômetro inicial salvo: ${Math.round(value)} km.\nJornada iniciada às ${now}.`);
-    return;
-  }
-
-  // Flow 2: odometer_end
-  if (workDay.odometer_end === null) {
-     const { error } = await supabaseAdmin
-      .from('work_days')
-      .update({ odometer_end: Math.round(value) })
-      .eq('id', workDay.id);
-
-    if (error) {
-      await sendTelegramMessage(token, chatId, 'Erro ao salvar o odômetro final.');
-      return;
-    }
-
-    await sendTelegramMessage(token, chatId, 'Quantas entregas você fez hoje?');
-    return;
-  }
-
-  // Flow 3: total_deliveries
-  if (workDay.total_deliveries === 0 || workDay.total_deliveries === null) {
-     const { error } = await supabaseAdmin
-      .from('work_days')
-      .update({ total_deliveries: Math.round(value) })
-      .eq('id', workDay.id);
-
-    if (error) {
-      await sendTelegramMessage(token, chatId, 'Erro ao salvar a quantidade de entregas.');
-      return;
-    }
-
+    await supabaseAdmin.from('work_days').update({ odometer_start: Math.round(value) }).eq('id', workDay.id);
+    await supabaseAdmin.from('sessions').insert({ work_day_id: workDay.id, status: 'active', start_time: new Date().toISOString() });
+    await sendTelegramMessage(token, chatId, `Odômetro inicial salvo: ${Math.round(value)} km. Jornada iniciada.`);
+  } else if (workDay.odometer_end === null) {
+    await supabaseAdmin.from('work_days').update({ odometer_end: Math.round(value) }).eq('id', workDay.id);
+    await sendTelegramMessage(token, chatId, 'Quantas entregas hoje?');
+  } else if (workDay.total_deliveries === 0 || workDay.total_deliveries === null) {
+    await supabaseAdmin.from('work_days').update({ total_deliveries: Math.round(value) }).eq('id', workDay.id);
     await sendTelegramMessage(token, chatId, 'Quanto você ganhou hoje?');
-    return;
-  }
-
-  // Flow 4: total_earned
-  if (workDay.total_earned === 0 || workDay.total_earned === null || workDay.total_earned === 0.00) {
-     const { error } = await supabaseAdmin
-      .from('work_days')
-      .update({ 
-        total_earned: value,
-        status: 'completed'
-      })
-      .eq('id', workDay.id);
-
-    if (error) {
-      await sendTelegramMessage(token, chatId, 'Erro ao salvar os ganhos.');
-      return;
-    }
-
-    await sendTelegramMessage(token, chatId, `Dia fechado com sucesso!\n\nUse /resumo para ver os indicadores.`, getMainKeyboard());
-    return;
+  } else if (workDay.total_earned === 0 || workDay.total_earned === null || workDay.total_earned === 0) {
+    await supabaseAdmin.from('work_days').update({ total_earned: value, status: 'completed' }).eq('id', workDay.id);
+    await sendTelegramMessage(token, chatId, `Dia fechado com sucesso!`, getMainKeyboard());
   }
 }
 
 async function handleResumo(token: string, chatId: string) {
   const today = new Date().toISOString().split('T')[0]!;
-
-  const { data: workDay } = await supabaseAdmin
-    .from('work_days')
-    .select('*, sessions(*)')
-    .eq('date', today)
-    .maybeSingle();
-
-  if (!workDay) {
-    await sendTelegramMessage(token, chatId, 'Nenhuma atividade registrada hoje.');
-    return;
-  }
-
+  const { data: workDay } = await supabaseAdmin.from('work_days').select('*, sessions(*)').eq('date', today).maybeSingle();
+  if (!workDay) return sendTelegramMessage(token, chatId, 'Sem atividade hoje.');
   let totalDurationMs = 0;
   workDay.sessions?.forEach((s: any) => {
     const start = new Date(s.start_time).getTime();
     const end = s.end_time ? new Date(s.end_time).getTime() : new Date().getTime();
     totalDurationMs += (end - start);
   });
-
   const hours = totalDurationMs / (1000 * 60 * 60);
   const km = (workDay.odometer_end && workDay.odometer_start) ? (workDay.odometer_end - workDay.odometer_start) : 0;
-  
   const earnings = Number(workDay.total_earned) || 0;
-  const deliveries = workDay.total_deliveries || 0;
-
-  const rh = hours > 0 ? (earnings / hours).toFixed(2) : '0.00';
-  const rkm = km > 0 ? (earnings / km).toFixed(2) : '0.00';
-  const rentrega = deliveries > 0 ? (earnings / deliveries).toFixed(2) : '0.00';
-
-  const formatDuration = (ms: number) => {
-    const h = Math.floor(ms / (1000 * 60 * 60));
-    const m = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
-    return `${h}h${m.toString().padStart(2, '0')}min`;
-  };
-
-  let msg = `<b>Resumo de Hoje (${workDay.date})</b>\n\n`;
-  msg += `Ganhos: R$ ${earnings.toFixed(2)}\n`;
-  msg += `Km rodados: ${km} km\n`;
-  msg += `Tempo total: ${formatDuration(totalDurationMs)}\n`;
-  msg += `Entregas: ${deliveries}\n\n`;
-  msg += `<b>Indicadores:</b>\n`;
-  msg += `R$/hora: R$ ${rh}\n`;
-  msg += `R$/km: R$ ${rkm}\n`;
-  msg += `R$/entrega: R$ ${rentrega}`;
-
-  if (workDay.status !== 'completed') {
-    msg += `\n\n<i>* O dia ainda não foi fechado.</i>`;
-  }
-
+  let msg = `<b>Resumo (${workDay.date})</b>\n\n`;
+  msg += `Ganhos: R$ ${earnings.toFixed(2)}\nKm: ${km} km\nTempo: ${Math.floor(hours)}h${Math.round((hours % 1) * 60)}min`;
   await sendTelegramMessage(token, chatId, msg, getMainKeyboard());
 }
