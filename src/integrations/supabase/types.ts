@@ -57,6 +57,7 @@ export type Database = {
           created_at: string | null
           date: string
           id: string
+          notes: string | null
           odometer_end: number | null
           odometer_start: number | null
           status: Database["public"]["Enums"]["work_day_status"]
@@ -68,6 +69,7 @@ export type Database = {
           created_at?: string | null
           date: string
           id?: string
+          notes?: string | null
           odometer_end?: number | null
           odometer_start?: number | null
           status?: Database["public"]["Enums"]["work_day_status"]
@@ -79,6 +81,7 @@ export type Database = {
           created_at?: string | null
           date?: string
           id?: string
+          notes?: string | null
           odometer_end?: number | null
           odometer_start?: number | null
           status?: Database["public"]["Enums"]["work_day_status"]
