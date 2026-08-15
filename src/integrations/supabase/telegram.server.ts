@@ -87,7 +87,7 @@ export const handleTelegramUpdate = async (body: any) => {
       }
     });
 
-    const distance = (day.odometer_end !== null && day.odometer_start !== null) ? (day.odometer_end - day.odometer_start) : null;
+    const distance = (day.odometer_end !== null && day.odometer_start !== null) ? (Number(day.odometer_end) - Number(day.odometer_start)) : null;
     const hours = totalMs / 3600000;
     
     const perHour = (hours > 0 && day.total_earned !== null) ? (day.total_earned / hours) : null;
