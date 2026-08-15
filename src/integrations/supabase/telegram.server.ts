@@ -340,7 +340,7 @@ export const handleTelegramUpdate = async (body: any) => {
         notes: null 
       }).eq('id', activeDay.id).select().single() as any);
       const summary = await getSummary(res.data);
-      await send(`<b>DIA FECHADO</b>\n\n${summary}`, {
+      await send(`<b>DIA ${formatDateBR(res.data.date)} FECHADO</b>\n\n${summary}`, {
         keyboard: [[{ text: 'CORRIGIR DIA' }, { text: 'RESUMO' }], [{ text: 'MENU' }]],
         resize_keyboard: true
       });
