@@ -300,7 +300,7 @@ export const handleTelegramUpdate = async (body: any) => {
       return;
     }
 
-    if (activeDay.odometer_end === null) {
+    if (activeDay.status === 'in_progress' && activeDay.odometer_end === null) {
       if (num < activeDay.odometer_start) {
         await send(`⚠️ O odômetro final não pode ser menor que o inicial (${activeDay.odometer_start}). Informe novamente:`, cancelMenu);
         return;
