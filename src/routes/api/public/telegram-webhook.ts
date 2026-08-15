@@ -31,7 +31,7 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
           }
 
           // 2. Handle Commands and Callbacks
-          const input = (callbackData || text) as string;
+          const input = (callbackData || text || '') as string;
 
           if (input === '/start') {
             await sendStartMenu(botToken, chatId);
