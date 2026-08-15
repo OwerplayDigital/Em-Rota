@@ -31,7 +31,7 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
           }
 
           // 2. Handle Commands and Callbacks
-          const input = callbackData || text;
+          const input = (callbackData || text) as string;
 
           if (input === '/start') {
             await sendStartMenu(botToken, chatId);
@@ -146,7 +146,7 @@ async function handleIniciarJornada(token: string, chatId: string) {
     // Start session directly if odometer is already recorded
     const { error: sessionError } = await supabaseAdmin
       .from('sessions')
-      .insert({ work_day_id: workDay.id, status: 'active', start_time: (new Date().toISOString() as any) });
+      .insert({ work_day_id: workDay.id, status: 'active', start_time: new Date().toISOString() });
 
     if (sessionError) {
       await sendTelegramMessage(token, chatId, 'Erro ao iniciar a jornada.');
@@ -178,7 +178,7 @@ async function handleEncerrarJornada(token: string, chatId: string) {
     .from('sessions')
     .update({ 
       status: 'completed', 
-      end_time: (endTime.toISOString() as any)
+      end_time: endTime.toISOString() 
     })
     .eq('id', activeSession.id);
 
@@ -274,7 +274,7 @@ async function handleNumericInput(token: string, chatId: string, input: string) 
     // After saving odometer, start the first session
     await supabaseAdmin
       .from('sessions')
-      .insert({ work_day_id: workDay.id, status: 'active', start_time: (new Date().toISOString() as any) });
+      .insert({ work_day_id: workDay.id, status: 'active', start_time: new Date().toISOString() });
 
     const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     await sendTelegramMessage(token, chatId, `Odômetro inicial salvo: ${Math.round(value)} km.\nJornada iniciada às ${now}.`);
@@ -314,11 +314,11 @@ async function handleNumericInput(token: string, chatId: string, input: string) 
   }
 
   // Flow 4: total_earned
-  if (workDay.total_earned === 0 || workDay.total_earned === null || Number(workDay.total_earned) === 0.00) {
+  if (workDay.total_earned === 0 || workDay.total_earned === null || workDay.total_earned === 0.00) {
      const { error } = await supabaseAdmin
       .from('work_days')
       .update({ 
-        total_earned: (value as any),
+        total_earned: value,
         status: 'completed'
       })
       .eq('id', workDay.id);
@@ -370,7 +370,7 @@ async function handleResumo(token: string, chatId: string) {
     return `${h}h${m.toString().padStart(2, '0')}min`;
   };
 
-  let msg = `<b>Resumo de Hoje (${(workDay.date as any)})</b>\n\n`;
+  let msg = `<b>Resumo de Hoje (${workDay.date})</b>\n\n`;
   msg += `Ganhos: R$ ${earnings.toFixed(2)}\n`;
   msg += `Km rodados: ${km} km\n`;
   msg += `Tempo total: ${formatDuration(totalDurationMs)}\n`;
