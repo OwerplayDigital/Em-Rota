@@ -22,12 +22,11 @@ export const Route = createFileRoute('/historico')({
 function HistoryPage() {
   const [selectedDay, setSelectedDay] = useState<any>(null)
   
-  // For history we want a broader range, e.g., last 365 days or "Este ano" as default
   const { data } = useSuspenseQuery({
     queryKey: ['dashboard', 'history-all'],
     queryFn: () => fetchDashboardData({ 
       data: { 
-        startDate: '2020-01-01', // Get all history
+        startDate: '2020-01-01',
         endDate: new Date().toISOString().split('T')[0]
       } 
     })
@@ -44,7 +43,6 @@ function HistoryPage() {
       };
     });
   }, [data]);
-
 
   return (
     <div className="p-6 md:p-10 space-y-8 bg-background min-h-screen text-foreground relative overflow-hidden">
@@ -88,7 +86,6 @@ function HistoryPage() {
                   </TableRow>
                 ))}
               </TableBody>
-
             </Table>
           </div>
           
@@ -137,7 +134,6 @@ function HistoryPage() {
                   <DetailItem icon={Package} label="Entregas" value={(selectedDay.total_deliveries || 0).toString()} />
                   <DetailItem icon={MapPin} label="Distância" value={(selectedDay.odometer_end && selectedDay.odometer_start) ? `${selectedDay.odometer_end - selectedDay.odometer_start} km` : '—'} />
                   <DetailItem icon={Clock} label="Duração" value={formatDuration(selectedDay.metrics.totalMs)} />
-
                 </div>
 
                 <div className="space-y-4 pt-8 border-t border-border">
@@ -151,6 +147,21 @@ function HistoryPage() {
                     <div className="space-y-1 text-right">
                       <div className="text-[9px] text-muted-foreground/50 uppercase tracking-tighter">Fim</div>
                       <div className="text-xl font-light text-foreground">{selectedDay.odometer_end ?? '—'} km</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-8 border-t border-border">
+                  <h3 className="text-xs font-bold text-muted-foreground/30 uppercase tracking-widest">Eficiência</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 rounded-2xl bg-muted/20 border border-border">
+                      <div className="text-[9px] text-muted-foreground/50 uppercase tracking-tighter mb-1">R$ / HORA</div>
+                      <div className="text-lg font-medium text-emerald-500">{selectedDay.metrics.avgPerHour > 0 ? `${formatCurrency(selectedDay.metrics.avgPerHour)}/h` : '—'}</div>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-muted/20 border border-border">
+                      <div className="text-[9px] text-muted-foreground/50 uppercase tracking-tighter mb-1">Jornadas</div>
+                      <div className="text-lg font-medium text-foreground">{selectedDay.daySessions.length}</div>
+                    </div>
                   </div>
                 </div>
 
@@ -183,24 +194,6 @@ function HistoryPage() {
                 </div>
               </div>
 
-                </div>
-
-                <div className="space-y-4 pt-8 border-t border-border">
-                  <h3 className="text-xs font-bold text-muted-foreground/30 uppercase tracking-widest">Eficiência</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 rounded-2xl bg-muted/20 border border-border">
-                      <div className="text-[9px] text-muted-foreground/50 uppercase tracking-tighter mb-1">R$ / HORA</div>
-                      <div className="text-lg font-medium text-emerald-500">{selectedDay.metrics.avgPerHour > 0 ? `${formatCurrency(selectedDay.metrics.avgPerHour)}/h` : '—'}</div>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-muted/20 border border-border">
-                      <div className="text-[9px] text-muted-foreground/50 uppercase tracking-tighter mb-1">Jornadas</div>
-                      <div className="text-lg font-medium text-foreground">{selectedDay.daySessions.length}</div>
-
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               <div className="mt-auto pt-8 border-t border-border">
                 <button className="w-full py-4 rounded-xl bg-muted/30 border border-border text-xs font-bold uppercase tracking-widest hover:bg-muted/50 transition-colors text-foreground/80 hover:text-foreground">
                   Gerar Comprovante
@@ -225,4 +218,3 @@ function DetailItem({ icon: Icon, label, value, color = "text-foreground" }: any
     </div>
   )
 }
-
