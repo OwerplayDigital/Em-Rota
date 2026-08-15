@@ -45,13 +45,14 @@ export function Sidebar() {
         <div className="p-10">
           <div className="flex items-center gap-3 mb-1">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-foreground to-foreground/60 flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.05)]">
-              <TrendingUp className="w-4 h-4 text-background" />
-            </div>
-            <h1 className="text-xl font-bold tracking-tighter bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent">
-              EM ROTA
-            </h1>
+            <TrendingUp className="w-4 h-4 text-primary-foreground" />
           </div>
-          <div className="text-[9px] font-bold text-muted-foreground/30 uppercase tracking-[0.3em] ml-11">Pro Edition</div>
+          <h1 className="text-xl font-bold tracking-tighter bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent">
+            EM ROTA
+          </h1>
+        </div>
+        <div className="text-[9px] font-bold text-muted-foreground/30 uppercase tracking-[0.3em] ml-11">Pro Edition</div>
+
         </div>
 
         <nav className="flex-1 px-6 space-y-2 mt-8">
