@@ -97,9 +97,9 @@ export const handleTelegramUpdate = async (body: any) => {
     return `<b>RESUMO DE ${formatDateBR(day.date)}</b>\n\n` +
       `<b>Ganhos:</b>\n${formatCurrency(day.total_earned)}\n\n` +
       `<b>Entregas:</b>\n${day.total_deliveries ?? 'Ainda não informado'}\n\n` +
-      `<b>Distância:</b>\n${distance !== null ? `${distance} km` : 'Ainda não informado'}\n\n` +
+      `<b>Distância:</b>\n${distance !== null ? `${formatNumberBR(distance)} km` : 'Ainda não informado'}\n\n` +
       `<b>Tempo na rua:</b>\n${formatDuration(totalMs)}\n\n` +
-      `<b>Odômetro:</b>\n${day.odometer_start ?? '?'}${day.odometer_end !== null ? ` → ${day.odometer_end}` : ''} km\n\n` +
+      `<b>Odômetro:</b>\n${formatNumberBR(day.odometer_start) ?? '?'}${day.odometer_end !== null ? ` → ${formatNumberBR(day.odometer_end)}` : ''} km\n\n` +
       `<b>MÉDIAS</b>\n\n` +
       `${formatCurrency(perHour)}/h\n` +
       `${formatCurrency(perKm)}/km\n` +
