@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as DesempenhoRouteImport } from './routes/desempenho'
 import { Route as HistoricoRouteImport } from './routes/historico'
+import { Route as ApiPublicBotRouteImport } from './routes/api/public/bot'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram-webhook'
 import { Route as ApiPublicTgRouteImport } from './routes/api/public/tg'
 
@@ -36,6 +37,11 @@ const HistoricoRoute = HistoricoRouteImport.update({
   path: '/historico',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicBotRoute = ApiPublicBotRouteImport.update({
+  id: '/api/public/bot',
+  path: '/api/public/bot',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicTelegramWebhookRoute =
   ApiPublicTelegramWebhookRouteImport.update({
     id: '/api/public/telegram-webhook',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/desempenho': typeof DesempenhoRoute
   '/historico': typeof HistoricoRoute
+  '/api/public/bot': typeof ApiPublicBotRoute
   '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/tg': typeof ApiPublicTgRoute
 }
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/desempenho': typeof DesempenhoRoute
   '/historico': typeof HistoricoRoute
+  '/api/public/bot': typeof ApiPublicBotRoute
   '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/tg': typeof ApiPublicTgRoute
 }
@@ -70,6 +78,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/desempenho': typeof DesempenhoRoute
   '/historico': typeof HistoricoRoute
+  '/api/public/bot': typeof ApiPublicBotRoute
   '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/tg': typeof ApiPublicTgRoute
 }
@@ -80,6 +89,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/desempenho'
     | '/historico'
+    | '/api/public/bot'
     | '/api/public/telegram-webhook'
     | '/api/public/tg'
   fileRoutesByTo: FileRoutesByTo
@@ -88,6 +98,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/desempenho'
     | '/historico'
+    | '/api/public/bot'
     | '/api/public/telegram-webhook'
     | '/api/public/tg'
   id:
@@ -96,6 +107,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/desempenho'
     | '/historico'
+    | '/api/public/bot'
     | '/api/public/telegram-webhook'
     | '/api/public/tg'
   fileRoutesById: FileRoutesById
@@ -105,6 +117,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   DesempenhoRoute: typeof DesempenhoRoute
   HistoricoRoute: typeof HistoricoRoute
+  ApiPublicBotRoute: typeof ApiPublicBotRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
   ApiPublicTgRoute: typeof ApiPublicTgRoute
 }
@@ -139,6 +152,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HistoricoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/bot': {
+      id: '/api/public/bot'
+      path: '/api/public/bot'
+      fullPath: '/api/public/bot'
+      preLoaderRoute: typeof ApiPublicBotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/telegram-webhook': {
       id: '/api/public/telegram-webhook'
       path: '/api/public/telegram-webhook'
@@ -161,6 +181,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   DesempenhoRoute: DesempenhoRoute,
   HistoricoRoute: HistoricoRoute,
+  ApiPublicBotRoute: ApiPublicBotRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
   ApiPublicTgRoute: ApiPublicTgRoute,
 }
