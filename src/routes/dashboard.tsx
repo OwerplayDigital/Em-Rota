@@ -10,12 +10,20 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  Cell
 } from 'recharts'
 import { motion } from 'framer-motion'
 import { TrendingUp, Clock, Package, MapPin, DollarSign, Calendar } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { cn } from '@/lib/utils'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { fetchDashboardData } from '@/lib/dashboard.functions'
+import { 
+  getDatesForPeriod, 
+  calculateMetrics, 
+  getChartData, 
+  formatCurrency, 
+  formatDuration 
+} from '@/lib/dashboard-utils'
 
 export const Route = createFileRoute('/dashboard')({
   component: DashboardPage,
@@ -23,18 +31,19 @@ export const Route = createFileRoute('/dashboard')({
 
 const periods = ['Hoje', '7 dias', 'Este mês', 'Este ano']
 
-const mockChartData = [
-  { name: 'Seg', valor: 120 },
-  { name: 'Ter', valor: 150 },
-  { name: 'Qua', valor: 80 },
-  { name: 'Qui', valor: 190 },
-  { name: 'Sex', valor: 220 },
-  { name: 'Sab', valor: 250 },
-  { name: 'Dom', valor: 160 },
-]
-
 function DashboardPage() {
-  const [activePeriod, setActivePeriod] = useState('Hoje')
+  const [activePeriod, setActivePeriod] = useState('7 dias')
+  const { startDate, endDate } = useMemo(() => getDatesForPeriod(activePeriod), [activePeriod])
+  
+  const { data } = useSuspenseQuery({
+    queryKey: ['dashboard', startDate, endDate],
+    queryFn: () => fetchDashboardData({ startDate, endDate })
+  })
+
+  const metrics = useMemo(() => calculateMetrics(data.workDays, data.sessions), [data])
+  const chartData = useMemo(() => getChartData(data.workDays, data.sessions), [data])
+  const hasData = data.workDays.length > 0;
+
 
   return (
     <motion.div 
