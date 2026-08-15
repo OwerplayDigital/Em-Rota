@@ -75,7 +75,7 @@ function HistoryPage() {
                     <TableCell className="font-medium text-foreground py-5 pl-8">{formatDateBR(item.date)}</TableCell>
                     <TableCell className="text-foreground/80">{formatCurrency(item.total_earned || 0)}</TableCell>
                     <TableCell className="text-foreground/80">{item.total_deliveries || 0}</TableCell>
-                    <TableCell className="text-foreground/80">{(item.odometer_end && item.odometer_start) ? `${item.odometer_end - item.odometer_start} km` : '—'}</TableCell>
+                    <TableCell className="text-foreground/80">{(item.odometer_end && item.odometer_start) ? `${(Number(item.odometer_end) - Number(item.odometer_start)).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} km` : '—'}</TableCell>
                     <TableCell className="text-foreground/80">{formatDuration(item.metrics.totalMs)}</TableCell>
                     <TableCell className="text-emerald-500 font-bold text-right pr-8">
                       <div className="flex items-center justify-end gap-2">
