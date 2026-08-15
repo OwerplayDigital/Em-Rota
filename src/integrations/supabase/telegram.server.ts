@@ -64,7 +64,8 @@ export const handleTelegramUpdate = async (body: any) => {
     return `${hours}h${minutes}min`;
   };
 
-  const formatCurrency = (val: number | null) => val !== null ? `R$ ${val.toFixed(2).replace('.', ',')}` : 'Ainda não informado';
+  const formatCurrency = (val: number | null) => val !== null ? `R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Ainda não informado';
+  const formatNumberBR = (val: number | null) => val !== null ? val.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : 'Ainda não informado';
 
   const getActiveWorkDay = async (): Promise<any> => {
     const res = await (supabaseAdmin.from('work_days').select('*').eq('date', today as any).maybeSingle() as any);
@@ -86,7 +87,7 @@ export const handleTelegramUpdate = async (body: any) => {
       }
     });
 
-    const distance = (day.odometer_end !== null && day.odometer_start !== null) ? (day.odometer_end - day.odometer_start) : null;
+    const distance = (day.odometer_end !== null && day.odometer_start !== null) ? (Number(day.odometer_end) - Number(day.odometer_start)) : null;
     const hours = totalMs / 3600000;
     
     const perHour = (hours > 0 && day.total_earned !== null) ? (day.total_earned / hours) : null;
@@ -96,9 +97,9 @@ export const handleTelegramUpdate = async (body: any) => {
     return `<b>RESUMO DE ${formatDateBR(day.date)}</b>\n\n` +
       `<b>Ganhos:</b>\n${formatCurrency(day.total_earned)}\n\n` +
       `<b>Entregas:</b>\n${day.total_deliveries ?? 'Ainda não informado'}\n\n` +
-      `<b>Distância:</b>\n${distance !== null ? `${distance} km` : 'Ainda não informado'}\n\n` +
+      `<b>Distância:</b>\n${distance !== null ? `${formatNumberBR(distance)} km` : 'Ainda não informado'}\n\n` +
       `<b>Tempo na rua:</b>\n${formatDuration(totalMs)}\n\n` +
-      `<b>Odômetro:</b>\n${day.odometer_start ?? '?'}${day.odometer_end !== null ? ` → ${day.odometer_end}` : ''} km\n\n` +
+      `<b>Odômetro:</b>\n${formatNumberBR(day.odometer_start) ?? '?'}${day.odometer_end !== null ? ` → ${formatNumberBR(day.odometer_end)}` : ''} km\n\n` +
       `<b>MÉDIAS</b>\n\n` +
       `${formatCurrency(perHour)}/h\n` +
       `${formatCurrency(perKm)}/km\n` +
@@ -196,7 +197,7 @@ export const handleTelegramUpdate = async (body: any) => {
     }
     if (activeSession) {
       const startTime = formatDateTimeBR(activeSession.start_time);
-      await send(`Você já tem uma jornada em andamento.\n\nInício: ${startTime}\nOdômetro: ${activeDay?.odometer_start ?? 'Não informado'}`, {
+      await send(`Você já tem uma jornada em andamento.\n\nInício: ${startTime}\nOdômetro: ${formatNumberBR(activeDay?.odometer_start) ?? 'Não informado'}`, {
         keyboard: [[{ text: 'ENCERRAR JORNADA' }, { text: 'RESUMO' }], [{ text: 'MENU' }]],
         resize_keyboard: true
       });
@@ -307,8 +308,8 @@ export const handleTelegramUpdate = async (body: any) => {
   }
 
   // Input Handling (Numeric/Prices)
-  const val = textInput.replace('R$', '').replace(',', '.').trim();
-  const num = parseFloat(val);
+  const rawVal = textInput.replace('R$', '').replace(/\s/g, '').replace(',', '.').trim();
+  const num = parseFloat(rawVal);
 
   if (!isNaN(num)) {
     // 1. Correction Handling
@@ -321,8 +322,8 @@ export const handleTelegramUpdate = async (body: any) => {
       } else if (mode === 'DELIVERIES') {
         update.total_deliveries = Math.round(num);
       } else if (mode === 'ODO_END') {
-        if (num < (activeDay.odometer_start || 0)) {
-          await send(`⚠️ O odômetro final não pode ser menor que o inicial (${activeDay.odometer_start}).`, cancelMenu);
+        if (num < (Number(activeDay.odometer_start) || 0)) {
+          await send(`⚠️ O odômetro final não pode ser menor que o inicial (${formatNumberBR(activeDay.odometer_start)}).`, cancelMenu);
           return;
         }
         update.odometer_end = num;
@@ -357,8 +358,8 @@ export const handleTelegramUpdate = async (body: any) => {
     }
 
     if (activeDay.notes === 'AWAITING:CLOSE_ODO') {
-      if (num < (activeDay.odometer_start || 0)) {
-        await send(`⚠️ O odômetro final não pode ser menor que o inicial (${activeDay.odometer_start}). Informe novamente:`, cancelMenu);
+      if (num < (Number(activeDay.odometer_start) || 0)) {
+        await send(`⚠️ O odômetro final não pode ser menor que o inicial (${formatNumberBR(activeDay.odometer_start)}). Informe novamente:`, cancelMenu);
         return;
       }
       await (supabaseAdmin.from('work_days').update({ odometer_end: num, notes: 'AWAITING:CLOSE_EARNINGS' }).eq('id', activeDay.id) as any);
@@ -388,8 +389,8 @@ export const handleTelegramUpdate = async (body: any) => {
 
     // Fallback para lógica antiga caso notes esteja vazio mas o fluxo esteja no meio
     if (activeDay.status === 'in_progress' && activeDay.odometer_end === null) {
-      if (num < activeDay.odometer_start) {
-        await send(`⚠️ O odômetro final não pode ser menor que o inicial (${activeDay.odometer_start}). Informe novamente:`, cancelMenu);
+      if (num < Number(activeDay.odometer_start)) {
+        await send(`⚠️ O odômetro final não pode ser menor que o inicial (${formatNumberBR(activeDay.odometer_start)}). Informe novamente:`, cancelMenu);
         return;
       }
       await (supabaseAdmin.from('work_days').update({ odometer_end: num }).eq('id', activeDay.id) as any);

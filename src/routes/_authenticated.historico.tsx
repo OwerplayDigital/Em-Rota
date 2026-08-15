@@ -75,7 +75,7 @@ function HistoryPage() {
                     <TableCell className="font-medium text-foreground py-5 pl-8">{formatDateBR(item.date)}</TableCell>
                     <TableCell className="text-foreground/80">{formatCurrency(item.total_earned || 0)}</TableCell>
                     <TableCell className="text-foreground/80">{item.total_deliveries || 0}</TableCell>
-                    <TableCell className="text-foreground/80">{(item.odometer_end && item.odometer_start) ? `${item.odometer_end - item.odometer_start} km` : '—'}</TableCell>
+                    <TableCell className="text-foreground/80">{(item.odometer_end && item.odometer_start) ? `${(Number(item.odometer_end) - Number(item.odometer_start)).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} km` : '—'}</TableCell>
                     <TableCell className="text-foreground/80">{formatDuration(item.metrics.totalMs)}</TableCell>
                     <TableCell className="text-emerald-500 font-bold text-right pr-8">
                       <div className="flex items-center justify-end gap-2">
@@ -132,7 +132,7 @@ function HistoryPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <DetailItem icon={DollarSign} label="Ganhos Totais" value={formatCurrency(selectedDay.total_earned || 0)} color="text-emerald-500" />
                   <DetailItem icon={Package} label="Entregas" value={(selectedDay.total_deliveries || 0).toString()} />
-                  <DetailItem icon={MapPin} label="Distância" value={(selectedDay.odometer_end && selectedDay.odometer_start) ? `${selectedDay.odometer_end - selectedDay.odometer_start} km` : '—'} />
+                  <DetailItem icon={MapPin} label="Distância" value={(selectedDay.odometer_end && selectedDay.odometer_start) ? `${(Number(selectedDay.odometer_end) - Number(selectedDay.odometer_start)).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} km` : '—'} />
                   <DetailItem icon={Clock} label="Duração" value={formatDuration(selectedDay.metrics.totalMs)} />
                 </div>
 
@@ -141,12 +141,12 @@ function HistoryPage() {
                   <div className="bg-muted/20 rounded-2xl p-6 border border-border flex justify-between items-center relative overflow-hidden">
                     <div className="space-y-1">
                       <div className="text-[9px] text-muted-foreground/50 uppercase tracking-tighter">Início</div>
-                      <div className="text-xl font-light text-foreground">{selectedDay.odometer_start ?? '—'} km</div>
+                      <div className="text-xl font-light text-foreground">{selectedDay.odometer_start !== null ? Number(selectedDay.odometer_start).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '—'} km</div>
                     </div>
                     <div className="h-8 w-px bg-border" />
                     <div className="space-y-1 text-right">
                       <div className="text-[9px] text-muted-foreground/50 uppercase tracking-tighter">Fim</div>
-                      <div className="text-xl font-light text-foreground">{selectedDay.odometer_end ?? '—'} km</div>
+                      <div className="text-xl font-light text-foreground">{selectedDay.odometer_end !== null ? Number(selectedDay.odometer_end).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '—'} km</div>
                     </div>
                   </div>
                 </div>

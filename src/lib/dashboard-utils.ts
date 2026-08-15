@@ -67,7 +67,7 @@ export const calculateMetrics = (workDays: any[], sessions: any[]) => {
   
   const totalDistance = workDays.reduce((acc, wd) => {
     if (wd.odometer_start !== null && wd.odometer_end !== null) {
-      return acc + (wd.odometer_end - wd.odometer_start);
+      return acc + (Number(wd.odometer_end) - Number(wd.odometer_start));
     }
     return acc;
   }, 0);
