@@ -102,7 +102,8 @@ export const getChartData = (workDays: any[], sessions: any[]) => {
     const metrics = calculateMetrics([wd], sessions.filter(s => s.work_day_id === wd.id));
     dayMap.set(wd.date, {
       date: wd.date,
-      displayDate: formatDateBR(wd.date),
+      label: formatDateBR(wd.date),
+      displayDate: formatDateBR(wd.date).split('/')[0],
       earned: metrics.totalEarned,
       deliveries: metrics.totalDeliveries,
       hours: metrics.totalHours,
