@@ -13,10 +13,15 @@ export const configureTelegramWebhook = createServerFn({ method: "POST" })
     }
 
     // 1. Set Webhook
-    // We add drop_pending_updates=true to clear the queue of 302 errors
-    const setUrl = `https://api.telegram.org/bot${botToken}/setWebhook?url=${encodeURIComponent(data.webhookUrl)}&drop_pending_updates=true`;
+    // We force the specific public URL to avoid any redirection issues
+    const webhookUrl = data.webhookUrl;
+    console.log(`[Config] Setting webhook to: ${webhookUrl}`);
+
+    const setUrl = `https://api.telegram.org/bot${botToken}/setWebhook?url=${encodeURIComponent(webhookUrl)}&drop_pending_updates=true`;
     const setRes = await fetch(setUrl);
     const setResult = await setRes.json();
+    
+    console.log(`[Config] setWebhook response:`, JSON.stringify(setResult));
 
     if (!setResult.ok) {
       return {
@@ -30,6 +35,8 @@ export const configureTelegramWebhook = createServerFn({ method: "POST" })
     const infoUrl = `https://api.telegram.org/bot${botToken}/getWebhookInfo`;
     const infoRes = await fetch(infoUrl);
     const infoResult = await infoRes.json();
+    
+    console.log(`[Config] getWebhookInfo after set:`, JSON.stringify(infoResult));
 
     return {
       success: true,

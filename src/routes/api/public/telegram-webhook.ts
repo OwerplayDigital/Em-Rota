@@ -5,8 +5,9 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const timestamp = new Date().toISOString();
         // Log basic info
-        console.log('[Webhook] POST received at /api/public/telegram-webhook');
+        console.log(`[Webhook][${timestamp}] POST received at /api/public/telegram-webhook`);
         
         const botToken = process.env['TELEGRAM_BOT_TOKEN'];
         const allowedUserId = process.env['TELEGRAM_ALLOWED_USER_ID'];

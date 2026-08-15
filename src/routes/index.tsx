@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { configureTelegramWebhook } from "@/lib/telegram.functions";
+import { getTelegramWebhookStatus } from "@/lib/telegram-status.functions";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { CheckCircle2, AlertCircle, Loader2, Bot, ExternalLink, ShieldCheck } from "lucide-react";
@@ -13,6 +14,22 @@ function Index() {
   const setupWebhook = useServerFn(configureTelegramWebhook);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [webhookInfo, setWebhookInfo] = useState<any>(null);
+  const getStatus = useServerFn(getTelegramWebhookStatus);
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const result = await getStatus();
+        if (result.success && result.info?.url) {
+          setWebhookInfo(result.info);
+          setStatus('success');
+        }
+      } catch (e) {
+        console.error("Status check failed", e);
+      }
+    };
+    checkStatus();
+  }, [getStatus]);
 
   const handleConnect = async () => {
     setStatus('loading');

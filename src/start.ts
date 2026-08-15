@@ -23,8 +23,14 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
 // from cross-site requests.
 const csrfMiddleware = createCsrfMiddleware({
   filter: (ctx) => {
-    // Disable CSRF for public API routes
-    if (ctx.request.url.includes('/api/public/')) return false;
+    // Log the URL to see what middleware sees
+    console.log(`[CSRF Check] URL: ${ctx.request.url}, Handler: ${ctx.handlerType}`);
+    
+    const url = new URL(ctx.request.url);
+    if (url.pathname.startsWith('/api/public/')) {
+      console.log(`[CSRF Check] Disabling for public route: ${url.pathname}`);
+      return false;
+    }
     return ctx.handlerType === "serverFn";
   },
 });
