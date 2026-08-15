@@ -198,7 +198,7 @@ export const handleTelegramUpdate = async (body: any) => {
 
     const distance = (day.odometer_end !== null && day.odometer_start !== null) ? (day.odometer_end - day.odometer_start) : null;
 
-    await send(`<b>JORNADA ENCERRADA</b>\n\nDuração desta jornada: ${formatDuration(thisSessionMs)}\n\n<b>TOTAL DE HOJE:</b>\nTempo na rua: ${formatDuration(totalMs)}\nGanhos: ${formatCurrency(day.total_earned)}\nEntregas: ${day.total_deliveries ?? 'Ainda não informado'}`, {
+    await send(`<b>JORNADA ENCERRADA</b>\n\nDuração desta jornada: ${formatDuration(thisSessionMs)}\n\n<b>TOTAL DE ${formatDateBR(day.date)}:</b>\nTempo na rua: ${formatDuration(totalMs)}\nGanhos: ${formatCurrency(day.total_earned)}\nEntregas: ${day.total_deliveries ?? 'Ainda não informado'}`, {
       keyboard: [[{ text: 'INICIAR JORNADA' }, { text: 'FECHAR DIA' }], [{ text: 'RESUMO' }, { text: 'MENU' }]],
       resize_keyboard: true
     });
