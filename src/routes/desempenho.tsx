@@ -7,13 +7,13 @@ export const Route = createFileRoute('/desempenho')({
 
 function PerformancePage() {
   return (
-    <div className="p-6 md:p-10 space-y-8 bg-[oklch(0.129_0.042_264.695)] min-h-screen text-white">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Desempenho</h1>
-        <p className="text-muted-foreground">Análise profunda da sua rentabilidade.</p>
+    <div className="p-6 md:p-10 space-y-12 bg-[oklch(0.129_0.042_264.695)] min-h-screen text-white">
+      <div className="space-y-1.5">
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-br from-white to-white/50 bg-clip-text text-transparent">Desempenho</h1>
+        <p className="text-white/40 text-sm">Análise profunda da sua rentabilidade.</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-12 md:grid-cols-3">
         <MetricItem label="Ganhos médios por dia" value="R$ 0,00" />
         <MetricItem label="Ganhos por hora" value="R$ 0,00" />
         <MetricItem label="Entregas por hora" value="0,0" />
@@ -22,13 +22,15 @@ function PerformancePage() {
         <MetricItem label="Tempo médio trabalhado" value="0h 00m" />
       </div>
 
-      <Card className="bg-white/5 border-white/10 p-12 text-center">
-        <CardContent className="space-y-4">
-          <div className="text-white/20 uppercase tracking-[0.2em] text-xs font-bold">Análise Comparativa</div>
-          <h3 className="text-xl text-white/40">Dados insuficientes para gerar tendências</h3>
-          <p className="text-sm text-white/30 max-w-sm mx-auto">
-            Continue registrando suas jornadas no Telegram para desbloquear insights de crescimento.
-          </p>
+      <Card className="bg-white/5 border-white/10 p-20 text-center rounded-3xl backdrop-blur-sm">
+        <CardContent className="space-y-6">
+          <div className="text-white/10 uppercase tracking-[0.4em] text-[10px] font-bold">Análise Comparativa</div>
+          <div className="space-y-2">
+            <h3 className="text-lg text-white/40 font-light">Dados insuficientes para gerar tendências</h3>
+            <p className="text-xs text-white/20 max-w-xs mx-auto leading-relaxed">
+              O sistema precisa de pelo menos 7 dias de atividades para calcular variações de rentabilidade.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>
