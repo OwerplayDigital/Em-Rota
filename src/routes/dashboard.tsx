@@ -104,7 +104,8 @@ function DashboardPage() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} opacity={0.2} />
                   <XAxis 
-                    dataKey="displayDate" 
+                    dataKey="label" 
+
                     stroke="var(--color-muted-foreground)" 
 
                     fontSize={10} 
@@ -123,7 +124,8 @@ function DashboardPage() {
                   />
                   <Tooltip 
                     contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '1rem', fontSize: '10px' }}
-                    itemStyle={{ color: 'var(--color-foreground)' }}
+                    labelStyle={{ color: 'var(--color-muted-foreground)', marginBottom: '4px', fontWeight: 'bold' }}
+                    itemStyle={{ color: 'var(--color-foreground)', padding: 0 }}
                     cursor={{ stroke: 'var(--color-primary)', strokeWidth: 1, strokeDasharray: '4 4' }}
                     formatter={(value: any) => [formatCurrency(Number(value)), 'Ganhos']}
                   />
@@ -153,11 +155,12 @@ function DashboardPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} opacity={0.2} />
-                    <XAxis dataKey="displayDate" stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} dy={10} />
+                    <XAxis dataKey="label" stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} dy={10} />
                     <YAxis stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} />
                     <Tooltip 
                       contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '1rem', fontSize: '10px' }}
-                      itemStyle={{ color: 'var(--color-foreground)' }}
+                      labelStyle={{ color: 'var(--color-muted-foreground)', marginBottom: '4px', fontWeight: 'bold' }}
+                      itemStyle={{ color: 'var(--color-foreground)', padding: 0 }}
                       cursor={{ fill: 'var(--color-primary)', fillOpacity: 0.1 }}
                       formatter={(value: any) => [value, 'Entregas']}
                     />
@@ -176,11 +179,12 @@ function DashboardPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} opacity={0.2} />
-                    <XAxis dataKey="displayDate" stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} dy={10} />
+                    <XAxis dataKey="label" stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} dy={10} />
                     <YAxis stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} tickFormatter={(value) => `${value}h`} />
                     <Tooltip 
                       contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '1rem', fontSize: '10px' }}
-                      itemStyle={{ color: 'var(--color-foreground)' }}
+                      labelStyle={{ color: 'var(--color-muted-foreground)', marginBottom: '4px', fontWeight: 'bold' }}
+                      itemStyle={{ color: 'var(--color-foreground)', padding: 0 }}
                       cursor={{ fill: 'var(--color-primary)', fillOpacity: 0.1 }}
                       formatter={(value: any) => [`${Number(value).toFixed(1)}h`, 'Tempo']}
                     />
