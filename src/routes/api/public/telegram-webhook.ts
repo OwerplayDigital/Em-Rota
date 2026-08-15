@@ -6,8 +6,6 @@ import { supabaseAdmin } from '@/integrations/supabase/client.server';
 
 export const Route = createFileRoute('/api/public/telegram-webhook')({
   server: {
-    // Disable automatic path normalization/redirects for this route
-    path: '/api/public/telegram-webhook',
     handlers: {
       POST: async ({ request }) => {
         const botToken = process.env['TELEGRAM_BOT_TOKEN'];
