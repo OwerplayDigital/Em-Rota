@@ -10,12 +10,20 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  Cell
 } from 'recharts'
 import { motion } from 'framer-motion'
 import { TrendingUp, Clock, Package, MapPin, DollarSign, Calendar } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { cn } from '@/lib/utils'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { fetchDashboardData } from '@/lib/dashboard.functions'
+import { 
+  getDatesForPeriod, 
+  calculateMetrics, 
+  getChartData, 
+  formatCurrency, 
+  formatDuration 
+} from '@/lib/dashboard-utils'
 
 export const Route = createFileRoute('/dashboard')({
   component: DashboardPage,
@@ -23,18 +31,20 @@ export const Route = createFileRoute('/dashboard')({
 
 const periods = ['Hoje', '7 dias', 'Este mês', 'Este ano']
 
-const mockChartData = [
-  { name: 'Seg', valor: 120 },
-  { name: 'Ter', valor: 150 },
-  { name: 'Qua', valor: 80 },
-  { name: 'Qui', valor: 190 },
-  { name: 'Sex', valor: 220 },
-  { name: 'Sab', valor: 250 },
-  { name: 'Dom', valor: 160 },
-]
-
 function DashboardPage() {
-  const [activePeriod, setActivePeriod] = useState('Hoje')
+  const [activePeriod, setActivePeriod] = useState('7 dias')
+  const { startDate, endDate } = useMemo(() => getDatesForPeriod(activePeriod), [activePeriod])
+  
+  const { data } = useSuspenseQuery({
+    queryKey: ['dashboard', startDate, endDate],
+    queryFn: () => fetchDashboardData({ data: { startDate, endDate } })
+  })
+
+
+  const metrics = useMemo(() => calculateMetrics(data.workDays, data.sessions), [data])
+  const chartData = useMemo(() => getChartData(data.workDays, data.sessions), [data])
+  const hasData = data.workDays.length > 0;
+
 
   return (
     <motion.div 
@@ -74,36 +84,59 @@ function DashboardPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-4 relative z-10">
-        <MetricCard title="GANHOS" value="R$ 0,00" icon={DollarSign} trend="+0%" />
-        <MetricCard title="ENTREGAS" value="0" icon={Package} />
-        <MetricCard title="TEMPO NA RUA" value="0h" icon={Clock} />
-        <MetricCard title="DISTÂNCIA" value="0 km" icon={MapPin} />
+        <MetricCard title="GANHOS" value={formatCurrency(metrics.totalEarned)} icon={DollarSign} />
+        <MetricCard title="ENTREGAS" value={metrics.totalDeliveries.toString()} icon={Package} />
+        <MetricCard title="TEMPO NA RUA" value={formatDuration(metrics.totalMs)} icon={Clock} />
+        <MetricCard title="DISTÂNCIA" value={`${metrics.totalDistance} km`} icon={MapPin} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 relative z-10">
-        <ChartCard title="Evolução dos Ganhos" subtitle="Desempenho semanal aproximado">
-          <div className="h-[280px] w-full flex items-center justify-center border border-dashed border-border rounded-3xl bg-muted/10 group hover:bg-muted/20 transition-colors">
-            <div className="text-center space-y-3 p-8">
-              <div className="w-12 h-12 rounded-2xl bg-muted/20 flex items-center justify-center mx-auto mb-4 border border-border">
-                <TrendingUp className="w-6 h-6 text-muted-foreground/40" />
-              </div>
-              <p className="text-muted-foreground/60 text-xs uppercase tracking-[0.2em] font-bold">Mock Visual: Sem dados</p>
-              <p className="text-muted-foreground/40 text-[10px] max-w-[200px] leading-relaxed">
-                As estatísticas reais aparecerão após você finalizar sua primeira jornada no Telegram.
-              </p>
+        <ChartCard title="Evolução dos Ganhos" subtitle="Desempenho no período selecionado">
+          {hasData ? (
+            <div className="h-[280px] w-full pt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="colorEarned" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="oklch(var(--primary))" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="oklch(var(--primary))" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(var(--border))" vertical={false} opacity={0.5} />
+                  <XAxis dataKey="displayDate" stroke="oklch(var(--muted-foreground))" fontSize={10} axisLine={false} tickLine={false} dy={10} />
+                  <YAxis stroke="oklch(var(--muted-foreground))" fontSize={10} axisLine={false} tickLine={false} tickFormatter={(value) => `R$ ${value}`} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: 'oklch(var(--card))', border: '1px solid oklch(var(--border))', borderRadius: '1rem', fontSize: '10px' }}
+                    itemStyle={{ color: 'oklch(var(--foreground))' }}
+                  />
+                  <Area type="monotone" dataKey="earned" name="Ganhos" stroke="oklch(var(--primary))" fillOpacity={1} fill="url(#colorEarned)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
-          </div>
+          ) : (
+            <EmptyState icon={TrendingUp} text="Sem registros neste período" subtext="As estatísticas reais aparecerão após você finalizar sua primeira jornada no Telegram." />
+          )}
         </ChartCard>
 
         <ChartCard title="Entregas por Período" subtitle="Volume de trabalho diário">
-          <div className="h-[280px] w-full flex items-center justify-center border border-dashed border-border rounded-3xl bg-muted/10 group hover:bg-muted/20 transition-colors">
-             <div className="text-center space-y-3 p-8">
-              <div className="w-12 h-12 rounded-2xl bg-muted/20 flex items-center justify-center mx-auto mb-4 border border-border">
-                <Calendar className="w-6 h-6 text-muted-foreground/40" />
-              </div>
-              <p className="text-muted-foreground/60 text-xs uppercase tracking-[0.2em] font-bold">Aguardando registros</p>
+          {hasData ? (
+            <div className="h-[280px] w-full pt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(var(--border))" vertical={false} opacity={0.5} />
+                  <XAxis dataKey="displayDate" stroke="oklch(var(--muted-foreground))" fontSize={10} axisLine={false} tickLine={false} dy={10} />
+                  <YAxis stroke="oklch(var(--muted-foreground))" fontSize={10} axisLine={false} tickLine={false} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: 'oklch(var(--card))', border: '1px solid oklch(var(--border))', borderRadius: '1rem', fontSize: '10px' }}
+                    itemStyle={{ color: 'oklch(var(--foreground))' }}
+                  />
+                  <Bar dataKey="deliveries" name="Entregas" fill="oklch(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-          </div>
+          ) : (
+            <EmptyState icon={Calendar} text="Aguardando registros" />
+          )}
         </ChartCard>
       </div>
 
@@ -113,12 +146,13 @@ function DashboardPage() {
           <div className="h-px flex-1 bg-border" />
         </div>
         <div className="grid gap-4 md:grid-cols-4">
-          <SmallMetric label="R$ / HORA" value="-" />
-          <SmallMetric label="R$ / KM" value="-" />
-          <SmallMetric label="R$ / ENTREGA" value="-" />
-          <SmallMetric label="ENTREGAS / HORA" value="-" />
+          <SmallMetric label="R$ / HORA" value={metrics.avgPerHour > 0 ? formatCurrency(metrics.avgPerHour) : "—"} />
+          <SmallMetric label="R$ / KM" value={metrics.avgPerKm > 0 ? formatCurrency(metrics.avgPerKm) : "—"} />
+          <SmallMetric label="R$ / ENTREGA" value={metrics.avgPerDelivery > 0 ? formatCurrency(metrics.avgPerDelivery) : "—"} />
+          <SmallMetric label="ENTREGAS / HORA" value={metrics.deliveriesPerHour > 0 ? metrics.deliveriesPerHour.toFixed(1) : "—"} />
         </div>
       </div>
+
 
     </motion.div>
   )
@@ -166,5 +200,21 @@ function SmallMetric({ label, value }: { label: string; value: string }) {
   )
 }
 
-
+function EmptyState({ icon: Icon, text, subtext }: { icon: any; text: string; subtext?: string }) {
+  return (
+    <div className="h-[280px] w-full flex items-center justify-center border border-dashed border-border rounded-3xl bg-muted/10 group hover:bg-muted/20 transition-colors">
+      <div className="text-center space-y-3 p-8">
+        <div className="w-12 h-12 rounded-2xl bg-muted/20 flex items-center justify-center mx-auto mb-4 border border-border">
+          <Icon className="w-6 h-6 text-muted-foreground/40" />
+        </div>
+        <p className="text-muted-foreground/60 text-xs uppercase tracking-[0.2em] font-bold">{text}</p>
+        {subtext && (
+          <p className="text-muted-foreground/40 text-[10px] max-w-[200px] leading-relaxed mx-auto">
+            {subtext}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
 

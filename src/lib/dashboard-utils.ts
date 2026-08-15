@@ -1,0 +1,113 @@
+import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
+
+const TIMEZONE = 'America/Sao_Paulo';
+
+export const getDatesForPeriod = (period: string) => {
+  const now = new Date();
+  const zonedNow = toZonedTime(now, TIMEZONE);
+  
+  let start: Date;
+  let end: Date = endOfDay(zonedNow);
+
+  switch (period) {
+    case 'Hoje':
+      start = startOfDay(zonedNow);
+      break;
+    case '7 dias':
+      start = startOfDay(subDays(zonedNow, 6));
+      break;
+    case 'Este mês':
+      start = startOfMonth(zonedNow);
+      break;
+    case 'Este ano':
+      start = startOfYear(zonedNow);
+      break;
+    default:
+      start = startOfDay(zonedNow);
+  }
+
+  return {
+    startDate: format(start, 'yyyy-MM-dd'),
+    endDate: format(end, 'yyyy-MM-dd'),
+  };
+};
+
+export const formatDateBR = (dateStr: string) => {
+  if (!dateStr) return '-';
+  const [year, month, day] = dateStr.split('-');
+  return `${day}/${month}/${year}`;
+};
+
+export const formatTimeBR = (date: string | Date) => {
+  if (!date) return '-';
+  return new Intl.DateTimeFormat('pt-BR', {
+    timeZone: TIMEZONE,
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(date));
+};
+
+export const formatDuration = (ms: number) => {
+  const hours = Math.floor(ms / 3600000);
+  const minutes = Math.floor((ms % 3600000) / 60000);
+  return `${hours}h ${minutes}m`;
+};
+
+export const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value);
+};
+
+export const calculateMetrics = (workDays: any[], sessions: any[]) => {
+  const totalEarned = workDays.reduce((acc, wd) => acc + (wd.total_earned || 0), 0);
+  const totalDeliveries = workDays.reduce((acc, wd) => acc + (wd.total_deliveries || 0), 0);
+  
+  const totalDistance = workDays.reduce((acc, wd) => {
+    if (wd.odometer_start !== null && wd.odometer_end !== null) {
+      return acc + (wd.odometer_end - wd.odometer_start);
+    }
+    return acc;
+  }, 0);
+
+  const totalMs = sessions.reduce((acc, s) => {
+    if (s.start_time && s.end_time) {
+      return acc + (new Date(s.end_time).getTime() - new Date(s.start_time).getTime());
+    }
+    return acc;
+  }, 0);
+
+  const totalHours = totalMs / 3600000;
+
+  return {
+    totalEarned,
+    totalDeliveries,
+    totalDistance,
+    totalMs,
+    totalHours,
+    avgPerHour: totalHours > 0 ? totalEarned / totalHours : 0,
+    avgPerKm: totalDistance > 0 ? totalEarned / totalDistance : 0,
+    avgPerDelivery: totalDeliveries > 0 ? totalEarned / totalDeliveries : 0,
+    deliveriesPerHour: totalHours > 0 ? totalDeliveries / totalHours : 0,
+  };
+};
+
+export const getChartData = (workDays: any[], sessions: any[]) => {
+  // Group by date
+  const dayMap = new Map();
+  
+  workDays.forEach(wd => {
+    const metrics = calculateMetrics([wd], sessions.filter(s => s.work_day_id === wd.id));
+    dayMap.set(wd.date, {
+      date: wd.date,
+      displayDate: formatDateBR(wd.date),
+      earned: metrics.totalEarned,
+      deliveries: metrics.totalDeliveries,
+      hours: metrics.totalHours,
+    });
+  });
+
+  return Array.from(dayMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+};

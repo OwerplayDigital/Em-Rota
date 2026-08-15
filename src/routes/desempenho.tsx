@@ -2,12 +2,53 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { motion } from 'framer-motion'
 import { TrendingUp, Award, Zap, BarChart3, Target, PieChart } from 'lucide-react'
+import { useMemo } from 'react'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { fetchDashboardData } from '@/lib/dashboard.functions'
+import { 
+  calculateMetrics, 
+  formatCurrency, 
+  formatDuration 
+} from '@/lib/dashboard-utils'
 
 export const Route = createFileRoute('/desempenho')({
   component: PerformancePage,
 })
 
 function PerformancePage() {
+  const { data } = useSuspenseQuery({
+    queryKey: ['dashboard', 'performance-all'],
+    queryFn: () => fetchDashboardData({ 
+      data: { 
+        startDate: '2020-01-01',
+        endDate: new Date().toISOString().split('T')[0]
+      } 
+    })
+  })
+
+  const metrics = useMemo(() => calculateMetrics(data.workDays, data.sessions), [data])
+  
+  const records = useMemo(() => {
+    if (!data.workDays || data.workDays.length === 0) return { maxEarned: 0, maxKmValue: 0 };
+    
+    const maxEarned = Math.max(...data.workDays.map(wd => wd.total_earned || 0));
+    
+    const costPerKmList = data.workDays
+      .map(wd => {
+        const dist = (wd.odometer_end && wd.odometer_start) ? wd.odometer_end - wd.odometer_start : 0;
+        return dist > 0 ? (wd.total_earned || 0) / dist : null;
+      })
+      .filter((v): v is number => v !== null);
+      
+    return {
+      maxEarned,
+      maxKmValue: costPerKmList.length > 0 ? Math.max(...costPerKmList) : 0
+    } as { maxEarned: number; maxKmValue: number };
+  }, [data]);
+
+
+  const avgDays = data.workDays.length || 1;
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
@@ -26,12 +67,13 @@ function PerformancePage() {
       </div>
 
       <div className="grid gap-12 md:grid-cols-3 relative z-10">
-        <MetricItem icon={BarChart3} label="Ganhos médios por dia" value="R$ 0,00" />
-        <MetricItem icon={TrendingUp} label="Ganhos por hora" value="R$ 0,00" />
-        <MetricItem icon={Zap} label="Entregas por hora" value="0,0" />
-        <MetricItem icon={Target} label="Ganhos por km" value="R$ 0,00" />
-        <MetricItem icon={Award} label="Média de entregas" value="0" />
-        <MetricItem icon={PieChart} label="Tempo médio trabalhado" value="0h 00m" />
+        <MetricItem icon={BarChart3} label="Ganhos médios por dia" value={formatCurrency(metrics.totalEarned / avgDays)} />
+        <MetricItem icon={TrendingUp} label="Ganhos por hora" value={metrics.avgPerHour > 0 ? `${formatCurrency(metrics.avgPerHour)}/h` : '—'} />
+        <MetricItem icon={Zap} label="Entregas por hora" value={metrics.deliveriesPerHour > 0 ? metrics.deliveriesPerHour.toFixed(1) : '—'} />
+        <MetricItem icon={Target} label="Ganhos por km" value={metrics.avgPerKm > 0 ? formatCurrency(metrics.avgPerKm) : '—'} />
+        <MetricItem icon={Award} label="Média de entregas" value={(metrics.totalDeliveries / avgDays).toFixed(1)} />
+        <MetricItem icon={PieChart} label="Tempo médio trabalhado" value={formatDuration(metrics.totalMs / avgDays)} />
+
       </div>
 
       <Card className="bg-card border-border p-20 text-center rounded-[3rem] backdrop-blur-xl relative z-10 group overflow-hidden">
@@ -39,16 +81,21 @@ function PerformancePage() {
         <CardContent className="space-y-8 relative z-10">
           <div className="text-muted-foreground/30 uppercase tracking-[0.6em] text-[10px] font-bold">Análise Comparativa</div>
           <div className="space-y-3">
-            <h3 className="text-2xl text-foreground/60 font-light">Dados insuficientes para gerar tendências</h3>
+            <h3 className="text-2xl text-foreground/60 font-light">
+              {data.workDays.length >= 7 ? 'Análise de tendência ativa' : 'Dados insuficientes para gerar tendências'}
+            </h3>
             <p className="text-xs text-muted-foreground/40 max-w-sm mx-auto leading-relaxed font-light">
-              O sistema utiliza algoritmos de IA para calcular variações de rentabilidade. Precisamos de pelo menos 7 dias de atividades consecutivas.
+              {data.workDays.length >= 7 
+                ? 'Seu desempenho está sendo comparado com a média das últimas semanas.' 
+                : 'O sistema utiliza algoritmos para calcular variações de rentabilidade. Precisamos de pelo menos 7 dias de atividades.'}
             </p>
           </div>
           <div className="pt-4">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted/20 border border-border text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">
-              Aguardando Primeira Jornada
+              {data.workDays.length > 0 ? `${data.workDays.length} Jornadas Registradas` : 'Aguardando Primeira Jornada'}
             </div>
           </div>
+
         </CardContent>
       </Card>
 
@@ -57,14 +104,16 @@ function PerformancePage() {
           <h4 className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em]">Recorde Pessoal</h4>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground/50 font-light">Maior ganho em um dia</span>
-            <span className="text-lg font-medium text-foreground/60">-</span>
+            <span className="text-lg font-medium text-foreground/60">{records.maxEarned > 0 ? formatCurrency(records.maxEarned) : '—'}</span>
+
           </div>
         </div>
         <div className="p-8 rounded-[2.5rem] bg-card border border-border space-y-4">
           <h4 className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em]">Eficiência Logística</h4>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground/50 font-light">Menor custo por km</span>
-            <span className="text-lg font-medium text-foreground/60">-</span>
+            <span className="text-lg font-medium text-foreground/60">{records.maxKmValue > 0 ? `${formatCurrency(records.maxKmValue as number)}/km` : '—'}</span>
+
           </div>
         </div>
       </div>
