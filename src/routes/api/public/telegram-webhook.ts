@@ -61,7 +61,7 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
             await sendTelegramMessage(botToken, chatId, 'Comando não reconhecido. Use o menu abaixo.', getMainKeyboard());
           }
 
-          return new Response('OK');
+          return new Response('OK', { status: 200 });
         } catch (error) {
           console.error('Error processing Telegram webhook:', error);
           return new Response('Internal Server Error', { status: 500 });
