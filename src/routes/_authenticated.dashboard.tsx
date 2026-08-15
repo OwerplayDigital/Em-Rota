@@ -87,7 +87,7 @@ function DashboardPage() {
         <MetricCard title="GANHOS" value={formatCurrency(metrics.totalEarned)} icon={DollarSign} />
         <MetricCard title="ENTREGAS" value={metrics.totalDeliveries.toString()} icon={Package} />
         <MetricCard title="TEMPO NA RUA" value={formatDuration(metrics.totalMs)} icon={Clock} />
-        <MetricCard title="DISTÂNCIA" value={`${metrics.totalDistance} km`} icon={MapPin} />
+        <MetricCard title="DISTÂNCIA" value={`${metrics.totalDistance.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} km`} icon={MapPin} />
       </div>
 
       <div className="flex flex-col gap-6 relative z-10 order-5">
