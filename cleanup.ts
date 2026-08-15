@@ -1,27 +1,25 @@
-import { supabaseAdmin } from './integrations/supabase/client.server';
+import { supabaseAdmin } from './src/integrations/supabase/client.server';
 
 async function cleanup() {
-  console.log('Starting cleanup...');
+  console.log('Iniciando limpeza...');
   try {
-    const { error: sessionError } = await supabaseAdmin
-      .from('sessions')
-      .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
-
-    if (sessionError) throw sessionError;
-    console.log('Sessions cleaned.');
-
-    const { error: workDayError } = await supabaseAdmin
+    // A deleção de work_days deve limpar sessions devido ao ON DELETE CASCADE
+    const { count: wdCount, error: wdError } = await supabaseAdmin
       .from('work_days')
       .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+      .neq('id', '00000000-0000-0000-0000-000000000000');
 
-    if (workDayError) throw workDayError;
-    console.log('Work days cleaned.');
+    if (wdError) throw wdError;
+    console.log('Registros de teste removidos.');
 
-    console.log('SUCCESS: Cleanup complete.');
+    // Validação final
+    const { count: wdFinal } = await supabaseAdmin.from('work_days').select('*', { count: 'exact', head: true });
+    const { count: sFinal } = await supabaseAdmin.from('sessions').select('*', { count: 'exact', head: true });
+
+    console.log(`Validação: work_days=${wdFinal}, sessions=${sFinal}`);
+    console.log('SUCCESS: Limpeza concluída.');
   } catch (err) {
-    console.error('ERROR during cleanup:', err);
+    console.error('ERRO:', err);
     process.exit(1);
   }
 }
