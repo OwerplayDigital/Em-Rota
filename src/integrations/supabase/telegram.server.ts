@@ -31,7 +31,7 @@ export const handleTelegramUpdate = async (body: any) => {
 
   const getActiveWorkDay = async () => {
     const { data } = await supabaseAdmin.from('work_days').select('*').eq('date', today).maybeSingle();
-    return data;
+    return data as any;
   };
 
   const getActiveSession = async () => {
@@ -185,7 +185,7 @@ export const handleTelegramUpdate = async (body: any) => {
       // First odo of the day
       let day = activeDay;
     if (!day) {
-      const { data } = await supabaseAdmin.from('work_days').insert({ date: today, odometer_start: num, status: 'in_progress' as any }).select().single();
+      const { data } = await (supabaseAdmin.from('work_days').insert({ date: today, odometer_start: num, status: 'in_progress' as any }).select().single() as any);
       day = data;
     } else {
       await supabaseAdmin.from('work_days').update({ odometer_start: num }).eq('id', day.id);
