@@ -72,16 +72,26 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
 
 async function sendTelegramMessage(token: string, chatId: string, text: string, replyMarkup?: any) {
   const url = `https://api.telegram.org/bot${token}/sendMessage`;
-  await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text: text,
-      reply_markup: replyMarkup,
-      parse_mode: 'HTML',
-    }),
-  });
+  console.log(`[Webhook] Sending message to ${chatId}: ${text.substring(0, 50)}...`);
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: text,
+        reply_markup: replyMarkup,
+        parse_mode: 'HTML',
+      }),
+    });
+    const result = await response.json();
+    console.log(`[Webhook] Telegram API response:`, JSON.stringify(result));
+    if (!result.ok) {
+      console.error(`[Webhook] Failed to send message: ${result.description}`);
+    }
+  } catch (error) {
+    console.error(`[Webhook] Error calling Telegram API:`, error);
+  }
 }
 
 function getMainKeyboard() {
