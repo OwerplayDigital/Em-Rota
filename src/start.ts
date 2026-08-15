@@ -22,7 +22,11 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
 // file opts out, so re-add it explicitly to keep server functions protected
 // from cross-site requests.
 const csrfMiddleware = createCsrfMiddleware({
-  filter: (ctx) => ctx.handlerType === "serverFn",
+  filter: (ctx) => {
+    // Disable CSRF for public API routes
+    if (ctx.request.url.includes('/api/public/')) return false;
+    return ctx.handlerType === "serverFn";
+  },
 });
 
 export const startInstance = createStart(() => ({
