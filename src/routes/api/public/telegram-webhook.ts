@@ -34,12 +34,12 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
           }
 
           if (textInput === 'INICIAR JORNADA') {
-            const { data: active } = await supabaseAdmin.from('sessions').select('*').eq('status', 'active' as any).maybeSingle();
+            const { data: active } = await (supabaseAdmin.from('sessions').select('*').eq('status', 'active' as any).maybeSingle() as any);
             if (active) {
               await send('⚠️ Já existe uma jornada ativa.');
             } else {
               const today = new Date().toISOString().split('T')[0];
-              const { data: existingDay } = await supabaseAdmin.from('work_days').select('*').eq('date', today).maybeSingle();
+              const { data: existingDay } = await (supabaseAdmin.from('work_days').select('*').eq('date', today).maybeSingle() as any);
               let dayId = '';
               let odoStart: number | null = null;
               
@@ -65,7 +65,7 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
           }
 
           if (textInput === 'ENCERRAR JORNADA') {
-            const { data: session } = await supabaseAdmin.from('sessions').select('*').eq('status', 'active' as any).maybeSingle();
+            const { data: session } = await (supabaseAdmin.from('sessions').select('*').eq('status', 'active' as any).maybeSingle() as any);
             if (!session) {
               await send('❌ Nenhuma jornada ativa encontrada.');
             } else {
@@ -76,7 +76,7 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
           }
 
           if (textInput === 'FECHAR DIA') {
-            const { data: active } = await supabaseAdmin.from('sessions').select('*').eq('status', 'active' as any).maybeSingle();
+            const { data: active } = await (supabaseAdmin.from('sessions').select('*').eq('status', 'active' as any).maybeSingle() as any);
             if (active) {
               await send('⚠️ Encerre a jornada antes de fechar o dia.');
             } else {
@@ -87,7 +87,7 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
 
           if (textInput === 'RESUMO') {
             const today = new Date().toISOString().split('T')[0];
-            const { data: day } = await supabaseAdmin.from('work_days').select('*, sessions(*)').eq('date', today).maybeSingle();
+            const { data: day } = await (supabaseAdmin.from('work_days').select('*, sessions(*)').eq('date', today).maybeSingle() as any);
             if (!day) await send('Nenhum dado para hoje.');
             else {
               const d = day as any;
@@ -111,7 +111,7 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
 
           if (/^\d+$/.test(textInput)) {
             const today = new Date().toISOString().split('T')[0];
-            const { data: day } = await supabaseAdmin.from('work_days').select('*').eq('date', today).maybeSingle();
+            const { data: day } = await (supabaseAdmin.from('work_days').select('*').eq('date', today).maybeSingle() as any);
             if (day) {
               const d = day as any;
               const dId = d.id as string;
