@@ -123,6 +123,7 @@ function DashboardPage() {
                     contentStyle={{ backgroundColor: 'oklch(var(--card))', border: '1px solid oklch(var(--border))', borderRadius: '1rem', fontSize: '10px' }}
                     itemStyle={{ color: 'oklch(var(--foreground))' }}
                     cursor={{ stroke: 'oklch(var(--primary))', strokeWidth: 1, strokeDasharray: '4 4' }}
+                    formatter={(value: any) => [formatCurrency(Number(value)), 'Ganhos']}
                   />
                   <Area 
                     type="monotone" 
@@ -156,6 +157,7 @@ function DashboardPage() {
                       contentStyle={{ backgroundColor: 'oklch(var(--card))', border: '1px solid oklch(var(--border))', borderRadius: '1rem', fontSize: '10px' }}
                       itemStyle={{ color: 'oklch(var(--foreground))' }}
                       cursor={{ fill: 'oklch(var(--primary) / 0.1)' }}
+                      formatter={(value: any) => [value, 'Entregas']}
                     />
                     <Bar dataKey="deliveries" name="Entregas" fill="oklch(var(--primary))" radius={[4, 4, 0, 0]} barSize={32} />
                   </BarChart>
@@ -178,7 +180,7 @@ function DashboardPage() {
                       contentStyle={{ backgroundColor: 'oklch(var(--card))', border: '1px solid oklch(var(--border))', borderRadius: '1rem', fontSize: '10px' }}
                       itemStyle={{ color: 'oklch(var(--foreground))' }}
                       cursor={{ fill: 'oklch(var(--primary) / 0.1)' }}
-                      formatter={(value: number) => [`${value.toFixed(1)}h`, 'Tempo']}
+                      formatter={(value: any) => [`${Number(value).toFixed(1)}h`, 'Tempo']}
                     />
                     <Bar dataKey="hours" name="Horas" fill="oklch(var(--primary))" opacity={0.8} radius={[4, 4, 0, 0]} barSize={32} />
                   </BarChart>
