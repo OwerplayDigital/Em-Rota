@@ -100,7 +100,7 @@ async function sendStartMenu(token: string, chatId: string) {
 // --- Business Logic Handlers ---
 
 async function handleIniciarJornada(token: string, chatId: string) {
-  const today: string = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0]!;
 
   // Check for active session
   const { data: activeSession } = await supabaseAdmin
@@ -215,7 +215,7 @@ async function handleEncerrarJornada(token: string, chatId: string) {
 }
 
 async function handleFecharDia(token: string, chatId: string) {
-  const today: string = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0]!;
 
   const { data: activeSession } = await supabaseAdmin
     .from('sessions')
@@ -249,7 +249,7 @@ async function handleFecharDia(token: string, chatId: string) {
 
 async function handleNumericInput(token: string, chatId: string, input: string) {
   const value = parseFloat(input.replace(',', '.'));
-  const today: string = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0]!;
 
   const { data: workDay } = await supabaseAdmin
     .from('work_days')
@@ -334,7 +334,7 @@ async function handleNumericInput(token: string, chatId: string, input: string) 
 }
 
 async function handleResumo(token: string, chatId: string) {
-  const today: string = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0]!;
 
   const { data: workDay } = await supabaseAdmin
     .from('work_days')
