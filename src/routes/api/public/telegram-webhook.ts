@@ -4,8 +4,10 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const botToken = process.env['TELEGRAM_BOT_TOKEN']!;
-        const allowedUserId = process.env['TELEGRAM_ALLOWED_USER_ID']!;
+        const botToken = process.env['TELEGRAM_BOT_TOKEN'] ?? '';
+        const allowedUserId = process.env['TELEGRAM_ALLOWED_USER_ID'] ?? '';
+
+        if (!botToken || !allowedUserId) return new Response('OK');
 
         const send = async (text: string, markup?: any) => {
           await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -44,12 +46,12 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
               if (!existingDay) {
                 const { data: newDay } = await supabaseAdmin.from('work_days').insert({ date: today, status: 'in_progress' }).select().single();
                 if (newDay) {
-                  dayId = (newDay as any).id;
-                  odoStart = (newDay as any).odometer_start;
+                  dayId = newDay.id;
+                  odoStart = newDay.odometer_start;
                 }
               } else {
-                dayId = (existingDay as any).id;
-                odoStart = (existingDay as any).odometer_start;
+                dayId = existingDay.id;
+                odoStart = existingDay.odometer_start;
               }
 
               if (dayId && odoStart === null) {
@@ -67,7 +69,7 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
             if (!session) {
               await send('❌ Nenhuma jornada ativa encontrada.');
             } else {
-              await supabaseAdmin.from('sessions').update({ end_time: new Date().toISOString(), status: 'completed' }).eq('id', (session as any).id);
+              await supabaseAdmin.from('sessions').update({ end_time: new Date().toISOString(), status: 'completed' }).eq('id', session.id);
               await send('✅ Jornada encerrada!');
             }
             return new Response('OK');
@@ -89,11 +91,11 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
             if (!day) await send('Nenhum dado para hoje.');
             else {
               const d = day as any;
-              const dateVal = (d.date || today) as string;
-              const statusVal = (d.status || '?') as string;
-              const odoS = (d.odometer_start || '?') as string;
-              const odoE = (d.odometer_end || '?') as string;
-              const sessCount = (d.sessions?.length || 0) as number;
+              const dateVal = String(d.date ?? today);
+              const statusVal = String(d.status ?? '?');
+              const odoS = String(d.odometer_start ?? '?');
+              const odoE = String(d.odometer_end ?? '?');
+              const sessCount = Number(d.sessions?.length ?? 0);
               await send(`📊 Resumo do Dia (${dateVal}):\nStatus: ${statusVal}\nOdômetro: ${odoS} - ${odoE}\nJornadas: ${sessCount}`);
             }
             return new Response('OK');
@@ -111,14 +113,12 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
             const today = new Date().toISOString().split('T')[0];
             const { data: day } = await supabaseAdmin.from('work_days').select('*').eq('date', today).maybeSingle();
             if (day) {
-              const d = day as any;
-              const dId = d.id as string;
-              if (d.odometer_start === null) {
-                await supabaseAdmin.from('work_days').update({ odometer_start: parseInt(textInput) }).eq('id', dId);
-                await supabaseAdmin.from('sessions').insert({ work_day_id: dId, status: 'active' });
+              if (day.odometer_start === null) {
+                await supabaseAdmin.from('work_days').update({ odometer_start: parseInt(textInput) }).eq('id', day.id);
+                await supabaseAdmin.from('sessions').insert({ work_day_id: day.id, status: 'active' });
                 await send(`📍 Odômetro inicial ${textInput} salvo. Jornada iniciada!`);
-              } else if (d.odometer_end === null) {
-                await supabaseAdmin.from('work_days').update({ odometer_end: parseInt(textInput), status: 'completed' }).eq('id', dId);
+              } else if (day.odometer_end === null) {
+                await supabaseAdmin.from('work_days').update({ odometer_end: parseInt(textInput), status: 'completed' }).eq('id', day.id);
                 await send(`🏁 Dia fechado com odômetro final ${textInput}!`);
               }
             }
