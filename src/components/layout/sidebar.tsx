@@ -5,10 +5,13 @@ import {
   Menu,
   ChevronRight,
   LogOut,
-  Smartphone
+  Smartphone,
+  X
 } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
+import { useState } from 'react'
+
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
@@ -17,8 +20,22 @@ const navItems = [
 ]
 
 export function Sidebar() {
+  const [isOpen, setIsOpen] = useState(false)
+
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 bg-black/40 backdrop-blur-2xl border-r border-white/5 flex flex-col z-[100] transition-all duration-500">
+    <>
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="fixed top-6 right-6 z-[110] md:hidden p-3 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-xl text-white/60 hover:text-white transition-all active:scale-95"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
+      <aside className={cn(
+        "fixed left-0 top-0 h-full w-64 bg-black/60 md:bg-black/40 backdrop-blur-3xl border-r border-white/5 flex flex-col z-[100] transition-all duration-500 md:translate-x-0",
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+
       <div className="p-10">
         <div className="flex items-center gap-3 mb-1">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-white to-white/60 flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.1)]">

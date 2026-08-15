@@ -124,11 +124,23 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className={cn("min-h-screen", !isPublicRoute && "pl-64")}>
-        {!isPublicRoute && <Sidebar />}
-        <Outlet />
+      <div className={cn("min-h-screen bg-[oklch(0.129_0.042_264.695)]", !isPublicRoute && "md:pl-64")}>
+        {!isPublicRoute && (
+          <>
+            <div className="md:hidden">
+              <Sidebar />
+            </div>
+            <div className="hidden md:block">
+              <Sidebar />
+            </div>
+          </>
+        )}
+        <main className="relative z-10">
+          <Outlet />
+        </main>
       </div>
     </QueryClientProvider>
   );
 }
+
 
