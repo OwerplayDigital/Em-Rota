@@ -167,18 +167,3 @@ function DetailItem({ icon: Icon, label, value, color = "text-foreground" }: any
   )
 }
 
-  )
-}
-
-function DetailItem({ icon: Icon, label, value, color = "text-white" }: any) {
-  return (
-    <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-3 relative overflow-hidden group hover:bg-white/[0.05] transition-colors">
-      <Icon className="w-4 h-4 text-white/20 group-hover:text-white/40 transition-colors" />
-      <div className="space-y-0.5">
-        <div className="text-[9px] text-white/30 uppercase tracking-tighter">{label}</div>
-        <div className={cn("text-xl font-light tracking-tight", color)}>{value}</div>
-      </div>
-    </div>
-  )
-}
-
