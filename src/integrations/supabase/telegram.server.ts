@@ -7,11 +7,24 @@ export const handleTelegramUpdate = async (body: any) => {
   if (!botToken || !allowedUserId) return;
 
   const send = async (text: string, markup?: any) => {
-    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: allowedUserId, text, parse_mode: 'HTML', reply_markup: markup }),
     });
+    return res.json();
+  };
+
+  const deleteMessage = async (messageId: number) => {
+    try {
+      await fetch(`https://api.telegram.org/bot${botToken}/deleteMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: allowedUserId, message_id: messageId }),
+      });
+    } catch (e) {
+      console.error('Failed to delete message:', messageId, e);
+    }
   };
 
   const msg = body.message;
@@ -96,13 +109,18 @@ export const handleTelegramUpdate = async (body: any) => {
     keyboard: [
       [{ text: 'INICIAR JORNADA' }, { text: 'ENCERRAR JORNADA' }],
       [{ text: 'RESUMO' }, { text: 'FECHAR DIA' }],
-      [{ text: 'CORRIGIR DIA' }]
+      [{ text: 'CORRIGIR DIA' }, { text: 'LIMPAR CHAT' }]
     ],
     resize_keyboard: true
   };
 
   const cancelMenu = {
     keyboard: [[{ text: 'CANCELAR' }]],
+    resize_keyboard: true
+  };
+
+  const clearChatMenu = {
+    keyboard: [[{ text: 'SIM, LIMPAR' }, { text: 'CANCELAR' }]],
     resize_keyboard: true
   };
 
@@ -142,8 +160,29 @@ export const handleTelegramUpdate = async (body: any) => {
       await send('Nenhum dado para hoje.', mainMenu);
     } else {
       const summary = await getSummary(activeDay);
-      await send(summary, activeDay.status === 'completed' ? { keyboard: [[{ text: 'CORRIGIR DIA' }, { text: 'MENU' }]], resize_keyboard: true } : mainMenu);
+      await send(summary, activeDay.status === 'completed' ? { keyboard: [[{ text: 'CORRIGIR DIA' }, { text: 'LIMPAR CHAT' }], [{ text: 'MENU' }]], resize_keyboard: true } : mainMenu);
     }
+    return;
+  }
+
+  if (textInput === 'LIMPAR CHAT') {
+    await send('<b>Limpar o chat?</b>\n\nIsso apagará somente as mensagens desta conversa do Telegram. Nenhum registro do Em Rota será apagado.', clearChatMenu);
+    return;
+  }
+
+  if (textInput === 'SIM, LIMPAR') {
+    const sent = await send('Limpando mensagens...', { remove_keyboard: true });
+    const lastMsgId = sent?.result?.message_id;
+
+    if (lastMsgId) {
+      // Telegram allows deleting messages up to 48h old.
+      // We try to delete the last 100 messages.
+      for (let i = 0; i < 100; i++) {
+        await deleteMessage(lastMsgId - i);
+      }
+    }
+
+    await send('<b>EM ROTA</b>\n\nHistórico visual limpo. Todos os dados permanecem salvos no sistema.', mainMenu);
     return;
   }
 
@@ -171,7 +210,7 @@ export const handleTelegramUpdate = async (body: any) => {
 
     await (supabaseAdmin.from('sessions').insert({ work_day_id: activeDay.id, status: 'active' as any }) as any);
     await send('Jornada iniciada!', {
-      keyboard: [[{ text: 'ENCERRAR JORNADA' }, { text: 'RESUMO' }]],
+      keyboard: [[{ text: 'ENCERRAR JORNADA' }, { text: 'RESUMO' }], [{ text: 'LIMPAR CHAT' }]],
       resize_keyboard: true
     });
     return;
@@ -199,7 +238,7 @@ export const handleTelegramUpdate = async (body: any) => {
     const distance = (day.odometer_end !== null && day.odometer_start !== null) ? (day.odometer_end - day.odometer_start) : null;
 
     await send(`<b>JORNADA ENCERRADA</b>\n\nDuração desta jornada: ${formatDuration(thisSessionMs)}\n\n<b>TOTAL DE ${formatDateBR(day.date)}:</b>\nTempo na rua: ${formatDuration(totalMs)}\nGanhos: ${formatCurrency(day.total_earned)}\nEntregas: ${day.total_deliveries ?? 'Ainda não informado'}`, {
-      keyboard: [[{ text: 'INICIAR JORNADA' }, { text: 'FECHAR DIA' }], [{ text: 'RESUMO' }, { text: 'MENU' }]],
+      keyboard: [[{ text: 'INICIAR JORNADA' }, { text: 'FECHAR DIA' }], [{ text: 'RESUMO' }, { text: 'LIMPAR CHAT' }], [{ text: 'MENU' }]],
       resize_keyboard: true
     });
     return;
@@ -292,7 +331,7 @@ export const handleTelegramUpdate = async (body: any) => {
       const res = await (supabaseAdmin.from('work_days').update(update).eq('id', activeDay.id).select().single() as any);
       const summary = await getSummary(res.data);
       await send('Dados atualizados.', {
-        keyboard: [[{ text: 'CORRIGIR DIA' }, { text: 'RESUMO' }], [{ text: 'MENU' }]],
+        keyboard: [[{ text: 'CORRIGIR DIA' }, { text: 'LIMPAR CHAT' }, { text: 'RESUMO' }], [{ text: 'MENU' }]],
         resize_keyboard: true
       });
       await send(summary);
@@ -341,7 +380,7 @@ export const handleTelegramUpdate = async (body: any) => {
       }).eq('id', activeDay.id).select().single() as any);
       const summary = await getSummary(res.data);
       await send(`<b>DIA ${formatDateBR(res.data.date)} FECHADO</b>\n\n${summary}`, {
-        keyboard: [[{ text: 'CORRIGIR DIA' }, { text: 'RESUMO' }], [{ text: 'MENU' }]],
+        keyboard: [[{ text: 'CORRIGIR DIA' }, { text: 'LIMPAR CHAT' }, { text: 'RESUMO' }], [{ text: 'MENU' }]],
         resize_keyboard: true
       });
       return;
