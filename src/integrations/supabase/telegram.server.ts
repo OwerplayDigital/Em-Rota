@@ -20,7 +20,7 @@ export const handleTelegramUpdate = async (body: any) => {
   const textInput = (msg.text || '') as string;
   
   const activeRes = await (supabaseAdmin.from('sessions').select('*').eq('status', 'active' as any).maybeSingle() as any);
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0] as string;
   const dayRes = await (supabaseAdmin.from('work_days').select('*').eq('date', today).maybeSingle() as any);
 
   if (textInput === '/start') {
