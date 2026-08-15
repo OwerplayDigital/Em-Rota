@@ -28,7 +28,6 @@ export const handleTelegramUpdate = async (body: any) => {
   };
   const today = getUserToday();
 
-  
   // Helpers
   const formatDuration = (ms: number) => {
     const hours = Math.floor(ms / 3600000);
@@ -36,7 +35,7 @@ export const handleTelegramUpdate = async (body: any) => {
     return `${hours}h${minutes}min`;
   };
 
-  const formatCurrency = (val: number | null) => val ? `R$ ${val.toFixed(2).replace('.', ',')}` : 'Ainda não informado';
+  const formatCurrency = (val: number | null) => val !== null ? `R$ ${val.toFixed(2).replace('.', ',')}` : 'Ainda não informado';
 
   const getActiveWorkDay = async (): Promise<any> => {
     const res = await (supabaseAdmin.from('work_days').select('*').eq('date', today as any).maybeSingle() as any);
@@ -58,19 +57,19 @@ export const handleTelegramUpdate = async (body: any) => {
       }
     });
 
-    const distance = (day.odometer_end && day.odometer_start) ? (day.odometer_end - day.odometer_start) : null;
+    const distance = (day.odometer_end !== null && day.odometer_start !== null) ? (day.odometer_end - day.odometer_start) : null;
     const hours = totalMs / 3600000;
     
-    const perHour = (hours > 0 && day.total_earned) ? (day.total_earned / hours) : null;
-    const perKm = (distance && distance > 0 && day.total_earned) ? (day.total_earned / distance) : null;
-    const perDelivery = (day.total_deliveries && day.total_deliveries > 0 && day.total_earned) ? (day.total_earned / day.total_deliveries) : null;
+    const perHour = (hours > 0 && day.total_earned !== null) ? (day.total_earned / hours) : null;
+    const perKm = (distance && distance > 0 && day.total_earned !== null) ? (day.total_earned / distance) : null;
+    const perDelivery = (day.total_deliveries && day.total_deliveries > 0 && day.total_earned !== null) ? (day.total_earned / day.total_deliveries) : null;
 
     return `<b>RESUMO DE HOJE</b>\n\n` +
       `<b>Ganhos:</b>\n${formatCurrency(day.total_earned)}\n\n` +
       `<b>Entregas:</b>\n${day.total_deliveries ?? 'Ainda não informado'}\n\n` +
-      `<b>Distância:</b>\n${distance ? `${distance} km` : 'Ainda não informado'}\n\n` +
+      `<b>Distância:</b>\n${distance !== null ? `${distance} km` : 'Ainda não informado'}\n\n` +
       `<b>Tempo na rua:</b>\n${formatDuration(totalMs)}\n\n` +
-      `<b>Odômetro:</b>\n${day.odometer_start ?? '?'}${day.odometer_end ? ` → ${day.odometer_end}` : ''} km\n\n` +
+      `<b>Odômetro:</b>\n${day.odometer_start ?? '?'}${day.odometer_end !== null ? ` → ${day.odometer_end}` : ''} km\n\n` +
       `<b>MÉDIAS</b>\n\n` +
       `${formatCurrency(perHour)}/h\n` +
       `${formatCurrency(perKm)}/km\n` +
@@ -78,7 +77,11 @@ export const handleTelegramUpdate = async (body: any) => {
   };
 
   const mainMenu = {
-    keyboard: [[{ text: 'INICIAR JORNADA' }, { text: 'ENCERRAR JORNADA' }], [{ text: 'RESUMO' }, { text: 'FECHAR DIA' }]],
+    keyboard: [
+      [{ text: 'INICIAR JORNADA' }, { text: 'ENCERRAR JORNADA' }],
+      [{ text: 'RESUMO' }, { text: 'FECHAR DIA' }],
+      [{ text: 'CORRIGIR DIA' }]
+    ],
     resize_keyboard: true
   };
 
@@ -87,10 +90,20 @@ export const handleTelegramUpdate = async (body: any) => {
     resize_keyboard: true
   };
 
+  const correctionMenu = {
+    keyboard: [
+      [{ text: 'GANHOS' }, { text: 'ENTREGAS' }],
+      [{ text: 'ODÔMETRO FINAL' }, { text: 'REABRIR DIA' }],
+      [{ text: 'CANCELAR' }]
+    ],
+    resize_keyboard: true
+  };
+
   // Logic
   const activeSession = await getActiveSession();
-  const activeDay = await getActiveWorkDay();
+  let activeDay = await getActiveWorkDay();
 
+  // Command handlers
   if (textInput === '/start' || textInput === 'MENU' || textInput === 'MENU PRINCIPAL') {
     let statusMsg = activeSession ? '🏃 Jornada em andamento.' : '⏸️ Nenhuma jornada ativa.';
     if (activeDay?.status === 'completed') statusMsg = '🏁 Dia fechado.';
@@ -100,13 +113,30 @@ export const handleTelegramUpdate = async (body: any) => {
   }
 
   if (textInput === 'CANCELAR') {
+    // Reset correction state if any
+    if (activeDay?.notes?.startsWith('CORRECT:')) {
+      await (supabaseAdmin.from('work_days').update({ notes: null }).eq('id', activeDay.id) as any);
+    }
     await send('Operação cancelada.', mainMenu);
+    return;
+  }
+
+  if (textInput === 'RESUMO') {
+    if (!activeDay) {
+      await send('Nenhum dado para hoje.', mainMenu);
+    } else {
+      const summary = await getSummary(activeDay);
+      await send(summary, activeDay.status === 'completed' ? { keyboard: [[{ text: 'CORRIGIR DIA' }, { text: 'MENU' }]], resize_keyboard: true } : mainMenu);
+    }
     return;
   }
 
   if (textInput === 'INICIAR JORNADA') {
     if (activeDay?.status === 'completed') {
-      await send('⚠️ O dia já foi fechado. Não é possível iniciar novas jornadas.', mainMenu);
+      await send('⚠️ O dia já foi fechado.\n\nPara continuar registrando, use:\n<b>CORRIGIR DIA → REABRIR DIA</b>', {
+        keyboard: [[{ text: 'CORRIGIR DIA' }, { text: 'RESUMO' }], [{ text: 'MENU' }]],
+        resize_keyboard: true
+      });
       return;
     }
     if (activeSession) {
@@ -119,7 +149,7 @@ export const handleTelegramUpdate = async (body: any) => {
     }
     
     if (!activeDay || activeDay.odometer_start === null) {
-      await send('Qual é o odômetro atual da bike?', cancelMenu);
+      await send('Qual é o odômetro inicial da bike?', cancelMenu);
       return;
     }
 
@@ -150,28 +180,18 @@ export const handleTelegramUpdate = async (body: any) => {
       if (s.start_time && s.end_time) totalMs += new Date(s.end_time).getTime() - new Date(s.start_time).getTime();
     });
 
-    const distance = (day.odometer_end && day.odometer_start) ? (day.odometer_end - day.odometer_start) : null;
+    const distance = (day.odometer_end !== null && day.odometer_start !== null) ? (day.odometer_end - day.odometer_start) : null;
 
-    await send(`<b>JORNADA ENCERRADA</b>\n\nDuração desta jornada:\n${formatDuration(thisSessionMs)}\n\n<b>TOTAL DE HOJE:</b>\nTempo na rua: ${formatDuration(totalMs)}\nDistância: ${distance ? `${distance} km` : 'Ainda não informado'}\nGanhos: ${formatCurrency(day.total_earned)}\nEntregas: ${day.total_deliveries ?? 'Ainda não informado'}`, {
+    await send(`<b>JORNADA ENCERRADA</b>\n\nDuração desta jornada: ${formatDuration(thisSessionMs)}\n\n<b>TOTAL DE HOJE:</b>\nTempo na rua: ${formatDuration(totalMs)}\nGanhos: ${formatCurrency(day.total_earned)}\nEntregas: ${day.total_deliveries ?? 'Ainda não informado'}`, {
       keyboard: [[{ text: 'INICIAR JORNADA' }, { text: 'FECHAR DIA' }], [{ text: 'RESUMO' }, { text: 'MENU' }]],
       resize_keyboard: true
     });
     return;
   }
 
-  if (textInput === 'RESUMO') {
-    if (!activeDay) {
-      await send('Nenhum dado para hoje.', mainMenu);
-    } else {
-      const summary = await getSummary(activeDay);
-      await send(summary, mainMenu);
-    }
-    return;
-  }
-
   if (textInput === 'FECHAR DIA') {
     if (activeSession) {
-      await send('Você ainda tem uma jornada em andamento. Encerre a jornada antes de fechar o dia.', {
+      await send('⚠️ Você ainda tem uma jornada em andamento. Encerre a jornada antes de fechar o dia.', {
         keyboard: [[{ text: 'ENCERRAR JORNADA' }, { text: 'MENU' }]],
         resize_keyboard: true
       });
@@ -181,7 +201,52 @@ export const handleTelegramUpdate = async (body: any) => {
       await send('Nenhum dado para hoje.', mainMenu);
       return;
     }
-    await send('Qual é o odômetro atual da bike?', cancelMenu);
+    await send('Qual é o odômetro final da bike?', cancelMenu);
+    return;
+  }
+
+  // Correction Flow
+  if (textInput === 'CORRIGIR DIA') {
+    if (!activeDay || activeDay.status !== 'completed') {
+      await send('⚠️ O dia precisa estar fechado para correções.', mainMenu);
+      return;
+    }
+    await send('Qual informação você deseja corrigir?', correctionMenu);
+    return;
+  }
+
+  if (textInput === 'GANHOS') {
+    await (supabaseAdmin.from('work_days').update({ notes: 'CORRECT:EARNED' }).eq('id', activeDay.id) as any);
+    await send('Qual é o valor correto dos ganhos de hoje?', cancelMenu);
+    return;
+  }
+
+  if (textInput === 'ENTREGAS') {
+    await (supabaseAdmin.from('work_days').update({ notes: 'CORRECT:DELIVERIES' }).eq('id', activeDay.id) as any);
+    await send('Qual é a quantidade correta de entregas?', cancelMenu);
+    return;
+  }
+
+  if (textInput === 'ODÔMETRO FINAL') {
+    await (supabaseAdmin.from('work_days').update({ notes: 'CORRECT:ODO_END' }).eq('id', activeDay.id) as any);
+    await send('Qual é o odômetro final correto?', cancelMenu);
+    return;
+  }
+
+  if (textInput === 'REABRIR DIA') {
+    await send('Reabrir o dia permitirá continuar registrando jornadas.\nDeseja continuar?', {
+      keyboard: [[{ text: 'SIM, REABRIR' }, { text: 'CANCELAR' }]],
+      resize_keyboard: true
+    });
+    return;
+  }
+
+  if (textInput === 'SIM, REABRIR') {
+    const res = await (supabaseAdmin.from('work_days').update({ status: 'in_progress', notes: null }).eq('id', activeDay.id).select().single() as any);
+    await send('Dia reaberto.', {
+      keyboard: [[{ text: 'INICIAR JORNADA' }, { text: 'FECHAR DIA' }], [{ text: 'MENU' }]],
+      resize_keyboard: true
+    });
     return;
   }
 
@@ -190,8 +255,35 @@ export const handleTelegramUpdate = async (body: any) => {
   const num = parseFloat(val);
 
   if (!isNaN(num)) {
+    // 1. Correction Handling
+    if (activeDay?.notes?.startsWith('CORRECT:')) {
+      const mode = activeDay.notes.split(':')[1];
+      let update: any = { notes: null };
+      
+      if (mode === 'EARNED') {
+        update.total_earned = num;
+      } else if (mode === 'DELIVERIES') {
+        update.total_deliveries = Math.round(num);
+      } else if (mode === 'ODO_END') {
+        if (num < (activeDay.odometer_start || 0)) {
+          await send(`⚠️ O odômetro final não pode ser menor que o inicial (${activeDay.odometer_start}).`, cancelMenu);
+          return;
+        }
+        update.odometer_end = num;
+      }
+
+      const res = await (supabaseAdmin.from('work_days').update(update).eq('id', activeDay.id).select().single() as any);
+      const summary = await getSummary(res.data);
+      await send('Dados atualizados.', {
+        keyboard: [[{ text: 'CORRIGIR DIA' }, { text: 'RESUMO' }], [{ text: 'MENU' }]],
+        resize_keyboard: true
+      });
+      await send(summary);
+      return;
+    }
+
+    // 2. Normal Flow
     if (!activeDay || activeDay.odometer_start === null) {
-      // First odo of the day
       let day = activeDay;
       if (!day) {
         const res = await (supabaseAdmin.from('work_days').insert({ date: today as any, odometer_start: num, status: 'in_progress' as any }).select().single() as any);
@@ -228,7 +320,7 @@ export const handleTelegramUpdate = async (body: any) => {
       const res = await (supabaseAdmin.from('work_days').update({ total_deliveries: Math.round(num), status: 'completed' as any }).eq('id', activeDay.id).select().single() as any);
       const summary = await getSummary(res.data);
       await send(`<b>DIA FECHADO</b>\n\n${summary}`, {
-        keyboard: [[{ text: 'RESUMO' }, { text: 'MENU PRINCIPAL' }]],
+        keyboard: [[{ text: 'CORRIGIR DIA' }, { text: 'RESUMO' }], [{ text: 'MENU' }]],
         resize_keyboard: true
       });
       return;
