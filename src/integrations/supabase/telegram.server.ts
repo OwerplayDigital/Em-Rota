@@ -358,8 +358,8 @@ export const handleTelegramUpdate = async (body: any) => {
     }
 
     if (activeDay.notes === 'AWAITING:CLOSE_ODO') {
-      if (num < (activeDay.odometer_start || 0)) {
-        await send(`⚠️ O odômetro final não pode ser menor que o inicial (${activeDay.odometer_start}). Informe novamente:`, cancelMenu);
+      if (num < (Number(activeDay.odometer_start) || 0)) {
+        await send(`⚠️ O odômetro final não pode ser menor que o inicial (${formatNumberBR(activeDay.odometer_start)}). Informe novamente:`, cancelMenu);
         return;
       }
       await (supabaseAdmin.from('work_days').update({ odometer_end: num, notes: 'AWAITING:CLOSE_EARNINGS' }).eq('id', activeDay.id) as any);
