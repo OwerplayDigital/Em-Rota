@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 
 export const getTelegramWebhookStatus = createServerFn({ method: "GET" })
   .handler(async () => {
@@ -12,12 +13,15 @@ export const getTelegramWebhookStatus = createServerFn({ method: "GET" })
       const infoUrl = `https://api.telegram.org/bot${botToken}/getWebhookInfo`;
       const infoRes = await fetch(infoUrl);
       const infoResult = await infoRes.json();
+      
+      console.log(`[Config] getWebhookInfo result:`, JSON.stringify(infoResult));
 
       return {
         success: true,
         info: infoResult.result
       };
     } catch (err: any) {
+      console.error(`[Config] getWebhookInfo error:`, err);
       return { success: false, error: err.message };
     }
   });
