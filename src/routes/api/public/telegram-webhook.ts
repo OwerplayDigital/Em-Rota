@@ -19,7 +19,7 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
           if (!chatId) return new Response('OK', { status: 200 });
 
           if (chatId !== allowedUserId) {
-            await fetch(\`https://api.telegram.org/bot\${botToken}/sendMessage\`, {
+            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ chat_id: chatId, text: 'Acesso negado.' }),
@@ -28,7 +28,7 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
           }
 
           if (body.message?.text === '/start') {
-            await fetch(\`https://api.telegram.org/bot\${botToken}/sendMessage\`, {
+            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
