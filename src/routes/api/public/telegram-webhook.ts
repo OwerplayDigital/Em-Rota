@@ -4,8 +4,8 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const botToken = process.env['TELEGRAM_BOT_TOKEN'] ?? '';
-        const allowedUserId = process.env['TELEGRAM_ALLOWED_USER_ID'] ?? '';
+        const botToken = (process.env['TELEGRAM_BOT_TOKEN'] ?? '') as string;
+        const allowedUserId = (process.env['TELEGRAM_ALLOWED_USER_ID'] ?? '') as string;
 
         if (!botToken || !allowedUserId) return new Response('OK');
 
@@ -40,7 +40,7 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
             } else {
               const today = new Date().toISOString().split('T')[0];
               const { data: existingDay } = await supabaseAdmin.from('work_days').select('*').eq('date', today).maybeSingle();
-              let dayId = '';
+              let dayId: string = '';
               let odoStart: number | null = null;
               
               if (!existingDay) {
