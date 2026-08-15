@@ -10,44 +10,44 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiPublicTelegramWebhookIndexRouteImport } from './routes/api/public/telegram-webhook/index'
+import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram-webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicTelegramWebhookIndexRoute =
-  ApiPublicTelegramWebhookIndexRouteImport.update({
-    id: '/api/public/telegram-webhook/',
-    path: '/api/public/telegram-webhook/',
+const ApiPublicTelegramWebhookRoute =
+  ApiPublicTelegramWebhookRouteImport.update({
+    id: '/api/public/telegram-webhook',
+    path: '/api/public/telegram-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/api/public/telegram-webhook/': typeof ApiPublicTelegramWebhookIndexRoute
+  '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookIndexRoute
+  '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/api/public/telegram-webhook/': typeof ApiPublicTelegramWebhookIndexRoute
+  '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/public/telegram-webhook/'
+  fullPaths: '/' | '/api/public/telegram-webhook'
   fileRoutesByTo: FileRoutesByTo
   to: '/' | '/api/public/telegram-webhook'
-  id: '__root__' | '/' | '/api/public/telegram-webhook/'
+  id: '__root__' | '/' | '/api/public/telegram-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ApiPublicTelegramWebhookIndexRoute: typeof ApiPublicTelegramWebhookIndexRoute
+  ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -59,11 +59,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/telegram-webhook/': {
-      id: '/api/public/telegram-webhook/'
+    '/api/public/telegram-webhook': {
+      id: '/api/public/telegram-webhook'
       path: '/api/public/telegram-webhook'
-      fullPath: '/api/public/telegram-webhook/'
-      preLoaderRoute: typeof ApiPublicTelegramWebhookIndexRouteImport
+      fullPath: '/api/public/telegram-webhook'
+      preLoaderRoute: typeof ApiPublicTelegramWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -71,7 +71,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ApiPublicTelegramWebhookIndexRoute: ApiPublicTelegramWebhookIndexRoute,
+  ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
