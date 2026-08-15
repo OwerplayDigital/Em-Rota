@@ -322,8 +322,8 @@ export const handleTelegramUpdate = async (body: any) => {
       } else if (mode === 'DELIVERIES') {
         update.total_deliveries = Math.round(num);
       } else if (mode === 'ODO_END') {
-        if (num < (activeDay.odometer_start || 0)) {
-          await send(`⚠️ O odômetro final não pode ser menor que o inicial (${activeDay.odometer_start}).`, cancelMenu);
+        if (num < (Number(activeDay.odometer_start) || 0)) {
+          await send(`⚠️ O odômetro final não pode ser menor que o inicial (${formatNumberBR(activeDay.odometer_start)}).`, cancelMenu);
           return;
         }
         update.odometer_end = num;
