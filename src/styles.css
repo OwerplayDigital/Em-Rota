@@ -1,6 +1,8 @@
-@import "tailwindcss" source(none);
+@import "tailwindcss";
 @source "../src";
 @import "tw-animate-css";
+@import "recharts";
+
 
 @custom-variant dark (&:is(.dark *));
 
