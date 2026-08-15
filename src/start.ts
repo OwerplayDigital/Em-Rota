@@ -23,12 +23,8 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
 // from cross-site requests.
 const csrfMiddleware = createCsrfMiddleware({
   filter: (ctx) => {
-    // Log the URL to see what middleware sees
-    console.log(`[CSRF Check] URL: ${ctx.request.url}, Handler: ${ctx.handlerType}`);
-    
     const url = new URL(ctx.request.url);
-    if (url.pathname.startsWith('/api/public/')) {
-      console.log(`[CSRF Check] Disabling for public route: ${url.pathname}`);
+    if (url.pathname === '/api/public/telegram-webhook') {
       return false;
     }
     return ctx.handlerType === "serverFn";
