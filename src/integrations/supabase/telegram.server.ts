@@ -29,6 +29,22 @@ export const handleTelegramUpdate = async (body: any) => {
   const today = getUserToday();
 
   // Helpers
+  const formatDateBR = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
+  };
+
+  const formatDateTimeBR = (date: Date | string) => {
+    return new Intl.DateTimeFormat('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(new Date(date)).replace(', ', ' às ');
+  };
+
   const formatDuration = (ms: number) => {
     const hours = Math.floor(ms / 3600000);
     const minutes = Math.floor((ms % 3600000) / 60000);
