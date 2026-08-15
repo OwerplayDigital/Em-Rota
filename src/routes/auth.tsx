@@ -23,6 +23,7 @@ function AuthPage() {
   const search = useSearch({ from: '/auth' })
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [isRegistering, setIsRegistering] = useState(false)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -38,27 +39,42 @@ function AuthPage() {
     })
   }, [search.error, navigate, search.redirect])
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      if (isRegistering) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              email_confirmed: true, // Auto-confirm logic if possible, otherwise user needs to confirm
+            }
+          }
+        })
+        if (error) throw error
+        toast.success('Conta criada! Agora faça o login.')
+        setIsRegistering(false)
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
 
-      if (error) throw error
+        if (error) throw error
 
-      if (data.user?.email !== 'owertech82@gmail.com') {
-        await supabase.auth.signOut()
-        throw new Error('Acesso negado: e-mail não autorizado.')
+        if (data.user?.email !== 'owertech82@gmail.com') {
+          await supabase.auth.signOut()
+          throw new Error('Acesso negado: e-mail não autorizado.')
+        }
+
+        toast.success('Bem-vindo ao Em Rota!')
+        navigate({ to: search.redirect || '/dashboard' })
       }
-
-      toast.success('Bem-vindo ao Em Rota!')
-      navigate({ to: search.redirect || '/dashboard' })
     } catch (error: any) {
-      toast.error(error.message || 'Erro ao realizar login')
+      toast.error(error.message || 'Erro na autenticação')
     } finally {
       setLoading(false)
     }
@@ -91,7 +107,7 @@ function AuthPage() {
             </div>
           </CardHeader>
           <CardContent className="px-8 pb-10 pt-2">
-            <form onSubmit={handleLogin} className="space-y-6">
+            <form onSubmit={handleAuth} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] ml-1">
                   E-mail
@@ -134,10 +150,20 @@ function AuthPage() {
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                 ) : (
-                  'Entrar'
+                  isRegistering ? 'Criar Conta' : 'Entrar'
                 )}
               </Button>
             </form>
+            
+            <div className="mt-4 text-center">
+              <button
+                onClick={() => setIsRegistering(!isRegistering)}
+                className="text-xs text-primary hover:underline font-medium uppercase tracking-widest"
+              >
+                {isRegistering ? 'Já tenho conta' : 'Criar nova conta'}
+              </button>
+            </div>
+
             <div className="mt-8 pt-6 border-t border-border/50 text-center">
               <p className="text-[9px] text-muted-foreground font-light uppercase tracking-widest leading-relaxed">
                 Este sistema é privado e restrito.<br />
