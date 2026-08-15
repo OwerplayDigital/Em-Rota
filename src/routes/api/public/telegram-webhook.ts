@@ -1,6 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { supabaseAdmin } from '@/integrations/supabase/client.server';
 
+// Ensure the runtime is set to 'node' or 'workerd' correctly if needed, 
+// but TanStack Start handles this. We just need to ensure the response is a direct Response.
+
 export const Route = createFileRoute('/api/public/telegram-webhook')({
   server: {
     handlers: {
