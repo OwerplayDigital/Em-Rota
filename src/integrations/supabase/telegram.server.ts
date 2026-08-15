@@ -18,6 +18,8 @@ export const handleTelegramUpdate = async (body: any) => {
   if (!msg || String(msg.from?.id) !== allowedUserId) return;
 
   const textInput = (msg.text || '') as string;
+  
+  // Cache data to avoid multiple calls
   const { data: activeRes } = await (supabaseAdmin.from('sessions').select('*').eq('status', 'active' as any).maybeSingle() as any);
   const today = new Date().toISOString().split('T')[0];
   const { data: dayRes } = await (supabaseAdmin.from('work_days').select('*').eq('date', today).maybeSingle() as any);
@@ -34,20 +36,19 @@ export const handleTelegramUpdate = async (body: any) => {
     if (activeRes) {
       await send('⚠️ Já existe uma jornada ativa.');
     } else {
-      let dayId = dayRes?.id;
-      let odoStart = dayRes?.odometer_start;
-      
-      if (!dayRes) {
+      let currentDay = dayRes;
+      if (!currentDay) {
         const { data: newDay } = await (supabaseAdmin.from('work_days').insert({ date: today, status: 'in_progress' as any }).select().single() as any);
-        dayId = newDay?.id;
-        odoStart = newDay?.odometer_start;
+        currentDay = newDay;
       }
 
-      if (dayId && odoStart === null) {
-        await send('Por favor, informe o odômetro inicial (apenas números):');
-      } else if (dayId) {
-        await supabaseAdmin.from('sessions').insert({ work_day_id: dayId, status: 'active' as any });
-        await send('🚀 Jornada iniciada com sucesso!');
+      if (currentDay) {
+        if (currentDay.odometer_start === null) {
+          await send('Por favor, informe o odômetro inicial (apenas números):');
+        } else {
+          await supabaseAdmin.from('sessions').insert({ work_day_id: currentDay.id, status: 'active' as any });
+          await send('🚀 Jornada iniciada com sucesso!');
+        }
       }
     }
     return;
