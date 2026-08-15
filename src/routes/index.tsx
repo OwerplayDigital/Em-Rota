@@ -10,15 +10,18 @@ export const Route = createFileRoute("/")({
 // IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="flex min-h-screen items-center justify-center bg-stone-50 p-4">
+      <div className="max-w-md text-center space-y-4">
+        <h1 className="text-4xl font-bold tracking-tight text-stone-900">Diária</h1>
+        <p className="text-lg text-stone-600">
+          Projeto preparado para conexão com Supabase e desenvolvimento de bot Telegram para registro de jornadas de entregas.
+        </p>
+        <div className="pt-4">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-stone-200 text-stone-800">
+            Aguardando implementação
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
