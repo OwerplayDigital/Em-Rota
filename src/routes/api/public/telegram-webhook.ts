@@ -8,6 +8,10 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        // Log all incoming headers to debug 302/307 issues
+        const headers: Record<string, string> = {};
+        request.headers.forEach((v, k) => headers[k] = v);
+        console.log('[Webhook] Request Headers:', JSON.stringify(headers));
         const botToken = process.env['TELEGRAM_BOT_TOKEN'];
         const allowedUserId = process.env['TELEGRAM_ALLOWED_USER_ID'];
 
