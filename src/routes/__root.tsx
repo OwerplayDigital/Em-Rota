@@ -11,6 +11,8 @@ import { useEffect, type ReactNode } from "react";
 import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { Sidebar } from "@/components/layout/sidebar";
+import { cn } from "@/lib/utils";
 
 function NotFoundComponent() {
   return (
@@ -117,11 +119,15 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
+  const isPublicRoute = router.state.location.pathname === '/' || router.state.location.pathname.startsWith('/api');
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <div className={cn("min-h-screen", !isPublicRoute && "pl-64")}>
+        {!isPublicRoute && <Sidebar />}
+        <Outlet />
+      </div>
     </QueryClientProvider>
   );
 }
