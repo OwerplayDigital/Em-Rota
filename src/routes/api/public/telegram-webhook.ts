@@ -147,7 +147,7 @@ async function handleIniciarJornada(token: string, chatId: string) {
     // Start session directly if odometer is already recorded
     const { error: sessionError } = await supabaseAdmin
       .from('sessions')
-    .insert({ work_day_id: workDay.id, status: 'active', start_time: new Date().toISOString() as string });
+      .insert({ work_day_id: workDay.id, status: 'active', start_time: new Date().toISOString() as string });
 
     if (sessionError) {
       await sendTelegramMessage(token, chatId, 'Erro ao iniciar a jornada.');
@@ -371,7 +371,7 @@ async function handleResumo(token: string, chatId: string) {
     return `${h}h${m.toString().padStart(2, '0')}min`;
   };
 
-  let msg = `<b>Resumo de Hoje (${workDay.date as string})</b>\n\n`;
+  let msg = `<b>Resumo de Hoje (${(workDay.date as unknown) as string})</b>\n\n`;
   msg += `Ganhos: R$ ${earnings.toFixed(2)}\n`;
   msg += `Km rodados: ${km} km\n`;
   msg += `Tempo total: ${formatDuration(totalDurationMs)}\n`;
