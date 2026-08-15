@@ -30,20 +30,20 @@ export const handleTelegramUpdate = async (body: any) => {
   const formatCurrency = (val: number | null) => val ? `R$ ${val.toFixed(2).replace('.', ',')}` : 'Ainda não informado';
 
   const getActiveWorkDay = async (): Promise<any> => {
-    const res = await supabaseAdmin.from('work_days').select('*').eq('date', today).maybeSingle();
+    const res = await (supabaseAdmin.from('work_days').select('*').eq('date', today as any).maybeSingle() as any);
     return res.data;
   };
 
   const getActiveSession = async (): Promise<any> => {
-    const activeRes = await supabaseAdmin.from('sessions').select('*').eq('status', 'active' as any).maybeSingle();
+    const activeRes = await (supabaseAdmin.from('sessions').select('*').eq('status', 'active' as any).maybeSingle() as any);
     return activeRes.data;
   };
 
   const getSummary = async (day: any) => {
-    const { data: sessions } = await supabaseAdmin.from('sessions').select('*').eq('work_day_id', day.id).eq('status', 'completed' as any);
+    const { data: sessions } = await (supabaseAdmin.from('sessions').select('*').eq('work_day_id', day.id).eq('status', 'completed' as any) as any);
     
     let totalMs = 0;
-    sessions?.forEach(s => {
+    (sessions as any[])?.forEach(s => {
       if (s.start_time && s.end_time) {
         totalMs += new Date(s.end_time).getTime() - new Date(s.start_time).getTime();
       }
@@ -114,7 +114,7 @@ export const handleTelegramUpdate = async (body: any) => {
       return;
     }
 
-    await supabaseAdmin.from('sessions').insert({ work_day_id: activeDay.id, status: 'active' as any });
+    await (supabaseAdmin.from('sessions').insert({ work_day_id: activeDay.id, status: 'active' as any }) as any);
     await send('Jornada iniciada!', {
       keyboard: [[{ text: 'ENCERRAR JORNADA' }, { text: 'RESUMO' }]],
       resize_keyboard: true
@@ -129,15 +129,15 @@ export const handleTelegramUpdate = async (body: any) => {
     }
 
     const endTime = new Date().toISOString();
-    await supabaseAdmin.from('sessions').update({ end_time: endTime, status: 'completed' as any }).eq('id', activeSession.id);
+    await (supabaseAdmin.from('sessions').update({ end_time: endTime, status: 'completed' as any }).eq('id', activeSession.id) as any);
     
     const day = await getActiveWorkDay();
     if (!day) return;
-    const { data: sessions } = await supabaseAdmin.from('sessions').select('*').eq('work_day_id', day.id).eq('status', 'completed' as any);
+    const { data: sessions } = await (supabaseAdmin.from('sessions').select('*').eq('work_day_id', day.id).eq('status', 'completed' as any) as any);
     
     const thisSessionMs = new Date(endTime).getTime() - new Date(activeSession.start_time).getTime();
     let totalMs = 0;
-    sessions?.forEach(s => {
+    (sessions as any[])?.forEach(s => {
       if (s.start_time && s.end_time) totalMs += new Date(s.end_time).getTime() - new Date(s.start_time).getTime();
     });
 
@@ -185,13 +185,13 @@ export const handleTelegramUpdate = async (body: any) => {
       // First odo of the day
       let day = activeDay;
       if (!day) {
-        const res = await (supabaseAdmin.from('work_days').insert({ date: today, odometer_start: num, status: 'in_progress' as any }).select().single() as any);
+        const res = await (supabaseAdmin.from('work_days').insert({ date: today as any, odometer_start: num, status: 'in_progress' as any }).select().single() as any);
         day = res.data;
       } else {
-        await supabaseAdmin.from('work_days').update({ odometer_start: num }).eq('id', day.id);
+        await (supabaseAdmin.from('work_days').update({ odometer_start: num }).eq('id', day.id) as any);
       }
       if (!day) return;
-      await supabaseAdmin.from('sessions').insert({ work_day_id: day.id, status: 'active' as any });
+      await (supabaseAdmin.from('sessions').insert({ work_day_id: day.id, status: 'active' as any }) as any);
       await send('Jornada iniciada!', {
         keyboard: [[{ text: 'ENCERRAR JORNADA' }, { text: 'RESUMO' }]],
         resize_keyboard: true
@@ -204,13 +204,13 @@ export const handleTelegramUpdate = async (body: any) => {
         await send(`⚠️ O odômetro final não pode ser menor que o inicial (${activeDay.odometer_start}). Informe novamente:`, cancelMenu);
         return;
       }
-      await supabaseAdmin.from('work_days').update({ odometer_end: num }).eq('id', activeDay.id);
+      await (supabaseAdmin.from('work_days').update({ odometer_end: num }).eq('id', activeDay.id) as any);
       await send('Quanto você ganhou hoje?', cancelMenu);
       return;
     }
 
     if (activeDay.total_earned === null) {
-      await supabaseAdmin.from('work_days').update({ total_earned: num }).eq('id', activeDay.id);
+      await (supabaseAdmin.from('work_days').update({ total_earned: num }).eq('id', activeDay.id) as any);
       await send('Quantas entregas você fez hoje?', cancelMenu);
       return;
     }
