@@ -29,6 +29,22 @@ export const handleTelegramUpdate = async (body: any) => {
   const today = getUserToday();
 
   // Helpers
+  const formatDateBR = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
+  };
+
+  const formatDateTimeBR = (date: Date | string) => {
+    return new Intl.DateTimeFormat('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(new Date(date)).replace(', ', ' às ');
+  };
+
   const formatDuration = (ms: number) => {
     const hours = Math.floor(ms / 3600000);
     const minutes = Math.floor((ms % 3600000) / 60000);
@@ -64,7 +80,7 @@ export const handleTelegramUpdate = async (body: any) => {
     const perKm = (distance && distance > 0 && day.total_earned !== null) ? (day.total_earned / distance) : null;
     const perDelivery = (day.total_deliveries && day.total_deliveries > 0 && day.total_earned !== null) ? (day.total_earned / day.total_deliveries) : null;
 
-    return `<b>RESUMO DE HOJE</b>\n\n` +
+    return `<b>RESUMO DE ${formatDateBR(day.date)}</b>\n\n` +
       `<b>Ganhos:</b>\n${formatCurrency(day.total_earned)}\n\n` +
       `<b>Entregas:</b>\n${day.total_deliveries ?? 'Ainda não informado'}\n\n` +
       `<b>Distância:</b>\n${distance !== null ? `${distance} km` : 'Ainda não informado'}\n\n` +
@@ -140,7 +156,7 @@ export const handleTelegramUpdate = async (body: any) => {
       return;
     }
     if (activeSession) {
-      const startTime = new Date(activeSession.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const startTime = formatDateTimeBR(activeSession.start_time);
       await send(`Você já tem uma jornada em andamento.\n\nInício: ${startTime}\nOdômetro: ${activeDay?.odometer_start ?? 'Não informado'}`, {
         keyboard: [[{ text: 'ENCERRAR JORNADA' }, { text: 'RESUMO' }], [{ text: 'MENU' }]],
         resize_keyboard: true
@@ -182,7 +198,7 @@ export const handleTelegramUpdate = async (body: any) => {
 
     const distance = (day.odometer_end !== null && day.odometer_start !== null) ? (day.odometer_end - day.odometer_start) : null;
 
-    await send(`<b>JORNADA ENCERRADA</b>\n\nDuração desta jornada: ${formatDuration(thisSessionMs)}\n\n<b>TOTAL DE HOJE:</b>\nTempo na rua: ${formatDuration(totalMs)}\nGanhos: ${formatCurrency(day.total_earned)}\nEntregas: ${day.total_deliveries ?? 'Ainda não informado'}`, {
+    await send(`<b>JORNADA ENCERRADA</b>\n\nDuração desta jornada: ${formatDuration(thisSessionMs)}\n\n<b>TOTAL DE ${formatDateBR(day.date)}:</b>\nTempo na rua: ${formatDuration(totalMs)}\nGanhos: ${formatCurrency(day.total_earned)}\nEntregas: ${day.total_deliveries ?? 'Ainda não informado'}`, {
       keyboard: [[{ text: 'INICIAR JORNADA' }, { text: 'FECHAR DIA' }], [{ text: 'RESUMO' }, { text: 'MENU' }]],
       resize_keyboard: true
     });
@@ -324,7 +340,7 @@ export const handleTelegramUpdate = async (body: any) => {
         notes: null 
       }).eq('id', activeDay.id).select().single() as any);
       const summary = await getSummary(res.data);
-      await send(`<b>DIA FECHADO</b>\n\n${summary}`, {
+      await send(`<b>DIA ${formatDateBR(res.data.date)} FECHADO</b>\n\n${summary}`, {
         keyboard: [[{ text: 'CORRIGIR DIA' }, { text: 'RESUMO' }], [{ text: 'MENU' }]],
         resize_keyboard: true
       });
@@ -351,7 +367,7 @@ export const handleTelegramUpdate = async (body: any) => {
     if (activeDay.total_deliveries === null) {
       const res = await (supabaseAdmin.from('work_days').update({ total_deliveries: Math.round(num), status: 'completed' as any }).eq('id', activeDay.id).select().single() as any);
       const summary = await getSummary(res.data);
-      await send(`<b>DIA FECHADO</b>\n\n${summary}`, {
+      await send(`<b>DIA ${formatDateBR(res.data.date)} FECHADO</b>\n\n${summary}`, {
         keyboard: [[{ text: 'CORRIGIR DIA' }, { text: 'RESUMO' }], [{ text: 'MENU' }]],
         resize_keyboard: true
       });
