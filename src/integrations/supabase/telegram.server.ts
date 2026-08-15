@@ -308,8 +308,8 @@ export const handleTelegramUpdate = async (body: any) => {
   }
 
   // Input Handling (Numeric/Prices)
-  const val = textInput.replace('R$', '').replace(',', '.').trim();
-  const num = parseFloat(val);
+  const rawVal = textInput.replace('R$', '').replace(/\s/g, '').replace(',', '.').trim();
+  const num = parseFloat(rawVal);
 
   if (!isNaN(num)) {
     // 1. Correction Handling
