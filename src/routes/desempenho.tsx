@@ -29,7 +29,7 @@ function PerformancePage() {
   const metrics = useMemo(() => calculateMetrics(data.workDays, data.sessions), [data])
   
   const records = useMemo(() => {
-    if (data.workDays.length === 0) return { maxEarned: 0, minCostKm: 0 };
+    if (!data.workDays || data.workDays.length === 0) return { maxEarned: 0, maxKmValue: 0 };
     
     const maxEarned = Math.max(...data.workDays.map(wd => wd.total_earned || 0));
     
@@ -43,8 +43,9 @@ function PerformancePage() {
     return {
       maxEarned,
       maxKmValue: costPerKmList.length > 0 ? Math.max(...costPerKmList) : 0
-    };
+    } as { maxEarned: number; maxKmValue: number };
   }, [data]);
+
 
   const avgDays = data.workDays.length || 1;
 
