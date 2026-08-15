@@ -14,7 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      sessions: {
+        Row: {
+          created_at: string | null
+          end_time: string | null
+          id: string
+          start_time: string
+          status: Database["public"]["Enums"]["session_status"]
+          updated_at: string | null
+          work_day_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          end_time?: string | null
+          id?: string
+          start_time?: string
+          status?: Database["public"]["Enums"]["session_status"]
+          updated_at?: string | null
+          work_day_id: string
+        }
+        Update: {
+          created_at?: string | null
+          end_time?: string | null
+          id?: string
+          start_time?: string
+          status?: Database["public"]["Enums"]["session_status"]
+          updated_at?: string | null
+          work_day_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_work_day_id_fkey"
+            columns: ["work_day_id"]
+            isOneToOne: false
+            referencedRelation: "work_days"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_days: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          odometer_end: number | null
+          odometer_start: number | null
+          status: Database["public"]["Enums"]["work_day_status"]
+          total_deliveries: number | null
+          total_earned: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          odometer_end?: number | null
+          odometer_start?: number | null
+          status?: Database["public"]["Enums"]["work_day_status"]
+          total_deliveries?: number | null
+          total_earned?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          odometer_end?: number | null
+          odometer_start?: number | null
+          status?: Database["public"]["Enums"]["work_day_status"]
+          total_deliveries?: number | null
+          total_earned?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +96,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      session_status: "active" | "completed"
+      work_day_status: "in_progress" | "completed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +224,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      session_status: ["active", "completed"],
+      work_day_status: ["in_progress", "completed"],
+    },
   },
 } as const
