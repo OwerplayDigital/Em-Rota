@@ -37,8 +37,9 @@ function DashboardPage() {
   
   const { data } = useSuspenseQuery({
     queryKey: ['dashboard', startDate, endDate],
-    queryFn: () => fetchDashboardData({ startDate, endDate })
+    queryFn: () => fetchDashboardData({ data: { startDate, endDate } })
   })
+
 
   const metrics = useMemo(() => calculateMetrics(data.workDays, data.sessions), [data])
   const chartData = useMemo(() => getChartData(data.workDays, data.sessions), [data])
