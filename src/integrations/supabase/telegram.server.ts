@@ -35,8 +35,8 @@ export const handleTelegramUpdate = async (body: any) => {
   };
 
   const getActiveSession = async () => {
-    const { data } = await supabaseAdmin.from('sessions').select('*').eq('status', 'active' as any).maybeSingle();
-    return data;
+    const activeRes = await supabaseAdmin.from('sessions').select('*').eq('status', 'active' as any).maybeSingle();
+    return activeRes.data;
   };
 
   const getSummary = async (day: any) => {
@@ -101,7 +101,7 @@ export const handleTelegramUpdate = async (body: any) => {
       return;
     }
     if (activeSession) {
-      const startTime = new Date(activeSession.start_time).toLocaleTimeString('pt-BR', { hour: '2d-digit', minute: '2d-digit' });
+      const startTime = new Date(activeSession.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       await send(`Você já tem uma jornada em andamento.\n\nInício: ${startTime}\nOdômetro: ${activeDay?.odometer_start ?? 'Não informado'}`, {
         keyboard: [[{ text: 'ENCERRAR JORNADA' }, { text: 'RESUMO' }], [{ text: 'MENU' }]],
         resize_keyboard: true
@@ -132,6 +132,7 @@ export const handleTelegramUpdate = async (body: any) => {
     await supabaseAdmin.from('sessions').update({ end_time: endTime, status: 'completed' as any }).eq('id', activeSession.id);
     
     const day = await getActiveWorkDay();
+    if (!day) return;
     const { data: sessions } = await supabaseAdmin.from('sessions').select('*').eq('work_day_id', day.id).eq('status', 'completed' as any);
     
     const thisSessionMs = new Date(endTime).getTime() - new Date(activeSession.start_time).getTime();
@@ -183,13 +184,14 @@ export const handleTelegramUpdate = async (body: any) => {
     if (!activeDay || activeDay.odometer_start === null) {
       // First odo of the day
       let day = activeDay;
-      if (!day) {
-        const { data } = await supabaseAdmin.from('work_days').insert({ date: today, odometer_start: num, status: 'in_progress' as any }).select().single();
-        day = data;
-      } else {
-        await supabaseAdmin.from('work_days').update({ odometer_start: num }).eq('id', day.id);
-      }
-      await supabaseAdmin.from('sessions').insert({ work_day_id: day.id, status: 'active' as any });
+    if (!day) {
+      const { data } = await supabaseAdmin.from('work_days').insert({ date: today, odometer_start: num, status: 'in_progress' as any }).select().single();
+      day = data;
+    } else {
+      await supabaseAdmin.from('work_days').update({ odometer_start: num }).eq('id', day.id);
+    }
+    if (!day) return;
+    await supabaseAdmin.from('sessions').insert({ work_day_id: day.id, status: 'active' as any });
       await send('Jornada iniciada!', {
         keyboard: [[{ text: 'ENCERRAR JORNADA' }, { text: 'RESUMO' }]],
         resize_keyboard: true
