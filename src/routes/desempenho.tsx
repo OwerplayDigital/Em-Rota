@@ -111,7 +111,7 @@ function PerformancePage() {
           <h4 className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em]">Eficiência Logística</h4>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground/50 font-light">Menor custo por km</span>
-            <span className="text-lg font-medium text-foreground/60">{records.maxKmValue > 0 ? `${formatCurrency(records.maxKmValue)}/km` : '—'}</span>
+            <span className="text-lg font-medium text-foreground/60">{records.maxKmValue > 0 ? `${formatCurrency(records.maxKmValue as number)}/km` : '—'}</span>
 
           </div>
         </div>
