@@ -8,9 +8,11 @@ import {
   Smartphone,
   X
 } from 'lucide-react'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
+import { supabase } from '@/integrations/supabase/client'
+import { toast } from 'sonner'
 
 
 const navItems = [
@@ -21,6 +23,17 @@ const navItems = [
 
 export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      toast.error("Erro ao sair")
+    } else {
+      toast.success("Até breve!")
+      navigate({ to: "/auth" })
+    }
+  }
 
   return (
     <>
@@ -96,7 +109,10 @@ export function Sidebar() {
             </div>
           </div>
           
-          <button className="w-full mt-6 py-4 flex items-center justify-center gap-3 text-muted-foreground/40 hover:text-muted-foreground/80 transition-colors group">
+          <button 
+            onClick={handleLogout}
+            className="w-full mt-6 py-4 flex items-center justify-center gap-3 text-muted-foreground/40 hover:text-muted-foreground/80 transition-colors group"
+          >
             <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             <span className="text-[10px] font-bold uppercase tracking-widest">Sair do Painel</span>
           </button>
@@ -106,5 +122,3 @@ export function Sidebar() {
     </>
   )
 }
-
-
