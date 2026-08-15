@@ -156,7 +156,7 @@ export const handleTelegramUpdate = async (body: any) => {
       return;
     }
     if (activeSession) {
-      const startTime = new Date(activeSession.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const startTime = formatDateTimeBR(activeSession.start_time);
       await send(`Você já tem uma jornada em andamento.\n\nInício: ${startTime}\nOdômetro: ${activeDay?.odometer_start ?? 'Não informado'}`, {
         keyboard: [[{ text: 'ENCERRAR JORNADA' }, { text: 'RESUMO' }], [{ text: 'MENU' }]],
         resize_keyboard: true
