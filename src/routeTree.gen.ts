@@ -10,9 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as DesempenhoRouteImport } from './routes/desempenho'
-import { Route as HistoricoRouteImport } from './routes/historico'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
+import { Route as AuthenticatedDesempenhoRouteImport } from './routes/_authenticated.desempenho'
+import { Route as AuthenticatedHistoricoRouteImport } from './routes/_authenticated.historico'
 import { Route as ApiPublicBotRouteImport } from './routes/api/public/bot'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram-webhook'
 import { Route as ApiPublicTgRouteImport } from './routes/api/public/tg'
@@ -22,20 +24,29 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardRoute = DashboardRouteImport.update({
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const DesempenhoRoute = DesempenhoRouteImport.update({
+const AuthenticatedDesempenhoRoute = AuthenticatedDesempenhoRouteImport.update({
   id: '/desempenho',
   path: '/desempenho',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const HistoricoRoute = HistoricoRouteImport.update({
+const AuthenticatedHistoricoRoute = AuthenticatedHistoricoRouteImport.update({
   id: '/historico',
   path: '/historico',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const ApiPublicBotRoute = ApiPublicBotRouteImport.update({
   id: '/api/public/bot',
@@ -56,18 +67,20 @@ const ApiPublicTgRoute = ApiPublicTgRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
-  '/desempenho': typeof DesempenhoRoute
-  '/historico': typeof HistoricoRoute
+  '/auth': typeof AuthRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/desempenho': typeof AuthenticatedDesempenhoRoute
+  '/historico': typeof AuthenticatedHistoricoRoute
   '/api/public/bot': typeof ApiPublicBotRoute
   '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/tg': typeof ApiPublicTgRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
-  '/desempenho': typeof DesempenhoRoute
-  '/historico': typeof HistoricoRoute
+  '/auth': typeof AuthRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/desempenho': typeof AuthenticatedDesempenhoRoute
+  '/historico': typeof AuthenticatedHistoricoRoute
   '/api/public/bot': typeof ApiPublicBotRoute
   '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/tg': typeof ApiPublicTgRoute
@@ -75,9 +88,11 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
-  '/desempenho': typeof DesempenhoRoute
-  '/historico': typeof HistoricoRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/desempenho': typeof AuthenticatedDesempenhoRoute
+  '/_authenticated/historico': typeof AuthenticatedHistoricoRoute
   '/api/public/bot': typeof ApiPublicBotRoute
   '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/tg': typeof ApiPublicTgRoute
@@ -86,6 +101,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/dashboard'
     | '/desempenho'
     | '/historico'
@@ -95,6 +111,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
     | '/dashboard'
     | '/desempenho'
     | '/historico'
@@ -104,9 +121,11 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/dashboard'
-    | '/desempenho'
-    | '/historico'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/desempenho'
+    | '/_authenticated/historico'
     | '/api/public/bot'
     | '/api/public/telegram-webhook'
     | '/api/public/tg'
@@ -114,9 +133,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DashboardRoute: typeof DashboardRoute
-  DesempenhoRoute: typeof DesempenhoRoute
-  HistoricoRoute: typeof HistoricoRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  AuthRoute: typeof AuthRoute
   ApiPublicBotRoute: typeof ApiPublicBotRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
   ApiPublicTgRoute: typeof ApiPublicTgRoute
@@ -131,26 +149,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard': {
-      id: '/dashboard'
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/desempenho': {
-      id: '/desempenho'
+    '/_authenticated/desempenho': {
+      id: '/_authenticated/desempenho'
       path: '/desempenho'
       fullPath: '/desempenho'
-      preLoaderRoute: typeof DesempenhoRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedDesempenhoRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/historico': {
-      id: '/historico'
+    '/_authenticated/historico': {
+      id: '/_authenticated/historico'
       path: '/historico'
       fullPath: '/historico'
-      preLoaderRoute: typeof HistoricoRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedHistoricoRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/api/public/bot': {
       id: '/api/public/bot'
@@ -176,11 +208,26 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedRouteChildren {
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDesempenhoRoute: typeof AuthenticatedDesempenhoRoute
+  AuthenticatedHistoricoRoute: typeof AuthenticatedHistoricoRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDesempenhoRoute: AuthenticatedDesempenhoRoute,
+  AuthenticatedHistoricoRoute: AuthenticatedHistoricoRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DashboardRoute: DashboardRoute,
-  DesempenhoRoute: DesempenhoRoute,
-  HistoricoRoute: HistoricoRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  AuthRoute: AuthRoute,
   ApiPublicBotRoute: ApiPublicBotRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
   ApiPublicTgRoute: ApiPublicTgRoute,

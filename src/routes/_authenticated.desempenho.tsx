@@ -11,7 +11,7 @@ import {
   formatDuration 
 } from '@/lib/dashboard-utils'
 
-export const Route = createFileRoute('/desempenho')({
+export const Route = createFileRoute('/_authenticated/desempenho')({
   component: PerformancePage,
 })
 

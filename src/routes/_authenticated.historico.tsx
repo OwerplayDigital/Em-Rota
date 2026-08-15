@@ -15,7 +15,7 @@ import {
   calculateMetrics
 } from '@/lib/dashboard-utils'
 
-export const Route = createFileRoute('/historico')({
+export const Route = createFileRoute('/_authenticated/historico')({
   component: HistoryPage,
 })
 
