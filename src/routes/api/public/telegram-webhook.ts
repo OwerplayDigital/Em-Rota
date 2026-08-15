@@ -147,14 +147,14 @@ async function handleIniciarJornada(token: string, chatId: string) {
     // Start session directly if odometer is already recorded
     const { error: sessionError } = await supabaseAdmin
       .from('sessions')
-      .insert({ work_day_id: workDay.id, status: 'active', start_time: new Date().toISOString() });
+    .insert({ work_day_id: workDay.id, status: 'active', start_time: new Date().toISOString() as string });
 
     if (sessionError) {
       await sendTelegramMessage(token, chatId, 'Erro ao iniciar a jornada.');
       return;
     }
 
-    const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) as string;
     await sendTelegramMessage(token, chatId, `Jornada iniciada às ${now}.\nOdômetro inicial: ${workDay.odometer_start} km.`);
   }
 }
@@ -275,9 +275,9 @@ async function handleNumericInput(token: string, chatId: string, input: string) 
     // After saving odometer, start the first session
     await supabaseAdmin
       .from('sessions')
-      .insert({ work_day_id: workDay.id, status: 'active', start_time: new Date().toISOString() });
+      .insert({ work_day_id: workDay.id, status: 'active', start_time: new Date().toISOString() as string });
 
-    const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) as string;
     await sendTelegramMessage(token, chatId, `Odômetro inicial salvo: ${Math.round(value)} km.\nJornada iniciada às ${now}.`);
     return;
   }
@@ -371,7 +371,7 @@ async function handleResumo(token: string, chatId: string) {
     return `${h}h${m.toString().padStart(2, '0')}min`;
   };
 
-  let msg = `<b>Resumo de Hoje (${workDay.date})</b>\n\n`;
+  let msg = `<b>Resumo de Hoje (${workDay.date as string})</b>\n\n`;
   msg += `Ganhos: R$ ${earnings.toFixed(2)}\n`;
   msg += `Km rodados: ${km} km\n`;
   msg += `Tempo total: ${formatDuration(totalDurationMs)}\n`;
