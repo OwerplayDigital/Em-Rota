@@ -8,6 +8,9 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
         const botToken = process.env['TELEGRAM_BOT_TOKEN'];
         const allowedUserId = process.env['TELEGRAM_ALLOWED_USER_ID'];
 
+        console.log(`[Webhook] Initialization. BotToken present: ${!!botToken}, AllowedUserID present: ${!!allowedUserId}`);
+        console.log(`[Webhook] AllowedUserID value: "${allowedUserId}"`);
+
         if (!botToken || !allowedUserId) {
           console.error('Missing environment variables: TELEGRAM_BOT_TOKEN or TELEGRAM_ALLOWED_USER_ID');
           return new Response('Configuration Error', { status: 500 });
@@ -25,7 +28,10 @@ export const Route = createFileRoute('/api/public/telegram-webhook')({
           if (!chatId) return new Response('OK');
 
           // 1. Authorization check
+          console.log(`[Webhook] Comparing: incoming chatId "${chatId}" (type: ${typeof chatId}) vs allowedUserId "${allowedUserId}" (type: ${typeof allowedUserId})`);
+          
           if (chatId !== allowedUserId) {
+            console.warn(`[Webhook] Access denied for chatId: ${chatId}`);
             await sendTelegramMessage(botToken, chatId, 'Acesso negado. Este bot é privado.');
             return new Response('Unauthorized', { status: 200 }); // Still return 200 to Telegram
           }
