@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { supabaseAdmin } from '@/integrations/supabase/client.server';
 
-export const Route = createFileRoute('/api/public/telegram-webhook')({
+export const Route = createFileRoute('/api/public/telegram-webhook/')({
   server: {
     handlers: {
       POST: async ({ request }) => {

@@ -10,54 +10,44 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram-webhook'
-import { Route as ApiPublicTgBotRouteImport } from './routes/api/public/tg-bot'
+import { Route as ApiPublicTelegramWebhookIndexRouteImport } from './routes/api/public/telegram-webhook/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicTelegramWebhookRoute =
-  ApiPublicTelegramWebhookRouteImport.update({
-    id: '/api/public/telegram-webhook',
-    path: '/api/public/telegram-webhook',
+const ApiPublicTelegramWebhookIndexRoute =
+  ApiPublicTelegramWebhookIndexRouteImport.update({
+    id: '/api/public/telegram-webhook/',
+    path: '/api/public/telegram-webhook/',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicTgBotRoute = ApiPublicTgBotRouteImport.update({
-  id: '/api/public/tg-bot',
-  path: '/api/public/tg-bot',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
-  '/api/public/tg-bot': typeof ApiPublicTgBotRoute
+  '/api/public/telegram-webhook/': typeof ApiPublicTelegramWebhookIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
-  '/api/public/tg-bot': typeof ApiPublicTgBotRoute
+  '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
-  '/api/public/tg-bot': typeof ApiPublicTgBotRoute
+  '/api/public/telegram-webhook/': typeof ApiPublicTelegramWebhookIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/public/telegram-webhook' | '/api/public/tg-bot'
+  fullPaths: '/' | '/api/public/telegram-webhook/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/public/telegram-webhook' | '/api/public/tg-bot'
-  id: '__root__' | '/' | '/api/public/telegram-webhook' | '/api/public/tg-bot'
+  to: '/' | '/api/public/telegram-webhook'
+  id: '__root__' | '/' | '/api/public/telegram-webhook/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
-  ApiPublicTgBotRoute: typeof ApiPublicTgBotRoute
+  ApiPublicTelegramWebhookIndexRoute: typeof ApiPublicTelegramWebhookIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -69,18 +59,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/telegram-webhook': {
-      id: '/api/public/telegram-webhook'
+    '/api/public/telegram-webhook/': {
+      id: '/api/public/telegram-webhook/'
       path: '/api/public/telegram-webhook'
-      fullPath: '/api/public/telegram-webhook'
-      preLoaderRoute: typeof ApiPublicTelegramWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/tg-bot': {
-      id: '/api/public/tg-bot'
-      path: '/api/public/tg-bot'
-      fullPath: '/api/public/tg-bot'
-      preLoaderRoute: typeof ApiPublicTgBotRouteImport
+      fullPath: '/api/public/telegram-webhook/'
+      preLoaderRoute: typeof ApiPublicTelegramWebhookIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -88,8 +71,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
-  ApiPublicTgBotRoute: ApiPublicTgBotRoute,
+  ApiPublicTelegramWebhookIndexRoute: ApiPublicTelegramWebhookIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
