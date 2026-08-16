@@ -53,16 +53,16 @@ function DashboardPage() {
       className="p-4 md:p-10 space-y-8 md:space-y-10 bg-background min-h-screen text-foreground relative overflow-hidden"
     >
       {/* Background Decor */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -z-10 translate-x-1/2 -translate-y-1/2" />
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/3 rounded-full blur-[120px] -z-10 translate-x-1/2 -translate-y-1/2" />
       
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10 order-1">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Em Tempo Real</span>
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(var(--color-primary),0.5)]" />
+            <span className="text-[10px] font-bold text-primary/70 uppercase tracking-[0.2em]">Em Tempo Real</span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-br from-foreground to-foreground/50 bg-clip-text text-transparent">Dashboard</h1>
-          <p className="text-muted-foreground text-xs font-light">Seu desempenho em movimento.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground text-xs font-light tracking-wide uppercase">Seu desempenho em movimento.</p>
         </div>
         
         <div className="flex bg-muted/30 p-1 rounded-2xl border border-border backdrop-blur-md self-start md:self-auto order-2">
@@ -219,14 +219,14 @@ function DashboardPage() {
 
 function MetricCard({ title, value, icon: Icon, trend }: { title: string; value: string; icon: any; trend?: string }) {
   return (
-    <Card className="bg-card border-border backdrop-blur-xl rounded-3xl overflow-hidden group hover:border-primary/50 transition-all duration-500">
+    <Card className="bg-card border-border/60 shadow-sm rounded-3xl overflow-hidden group hover:border-primary/40 transition-all duration-500">
       <CardHeader className="flex flex-row items-center justify-between pb-1 space-y-0 pt-4 px-4 md:pt-6 md:px-6">
-        <CardTitle className="text-[9px] md:text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">{title}</CardTitle>
+        <CardTitle className="text-[9px] md:text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em]">{title}</CardTitle>
         <Icon className="w-3 h-3 md:w-4 md:h-4 text-muted-foreground/50 group-hover:text-primary transition-colors" />
       </CardHeader>
       <CardContent className="px-4 pb-4 pt-1 md:px-6 md:pb-6 md:pt-2">
         <div className="flex items-baseline gap-2">
-          <div className="text-xl md:text-3xl font-light tracking-tight text-foreground transition-colors">{value}</div>
+          <div className="text-xl md:text-3xl font-bold tracking-tight text-foreground transition-colors">{value}</div>
           {trend && <span className="text-[9px] md:text-[10px] text-emerald-500 font-bold">{trend}</span>}
         </div>
       </CardContent>

@@ -39,7 +39,7 @@ export function Sidebar() {
     <>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-6 right-6 z-[110] md:hidden p-3 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-xl text-white/60 hover:text-white transition-all active:scale-95"
+        className="fixed top-6 right-6 z-[110] md:hidden p-3 bg-primary/10 border border-primary/20 rounded-2xl backdrop-blur-xl text-primary hover:text-primary/80 transition-all active:scale-95"
       >
         {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
@@ -57,7 +57,7 @@ export function Sidebar() {
       )}>
         <div className="p-10">
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-foreground to-foreground/60 flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.05)]">
+            <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-[0_0_20px_rgba(var(--color-primary),0.3)]">
             <TrendingUp className="w-4 h-4 text-primary-foreground" />
           </div>
           <h1 className="text-xl font-bold tracking-tighter bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent">
@@ -76,8 +76,8 @@ export function Sidebar() {
               onClick={() => setIsOpen(false)}
               className={cn(
                 "flex items-center gap-4 px-5 py-4 rounded-[1.25rem] transition-all duration-500 group relative",
-                "text-muted-foreground hover:text-foreground hover:bg-muted/20",
-                "[&.active]:bg-primary/10 [&.active]:text-foreground [&.active]:shadow-[inset_0_0_20px_rgba(255,255,255,0.02)]"
+                "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
+                "[&.active]:bg-sidebar-primary/10 [&.active]:text-sidebar-primary [&.active]:shadow-[inset_0_0_20px_rgba(var(--color-sidebar-primary),0.02)]"
               )}
             >
               <item.icon className="w-5 h-5 opacity-40 group-hover:opacity-100 transition-all duration-500 group-[.active]:opacity-100 group-[.active]:text-primary" />
