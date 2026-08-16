@@ -67,6 +67,15 @@ export const handleTelegramUpdate = async (body: any) => {
   const formatCurrency = (val: number | null) => val !== null ? `R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Ainda não informado';
   const formatNumberBR = (val: number | null) => val !== null ? val.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : 'Ainda não informado';
 
+  const formatTimeBR = (date: string | Date) => {
+    if (!date) return '-';
+    return new Intl.DateTimeFormat('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(new Date(date));
+  };
+
   const getActiveWorkDay = async (): Promise<any> => {
     const res = await (supabaseAdmin.from('work_days').select('*').eq('date', today as any).maybeSingle() as any);
     return res.data;
