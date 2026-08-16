@@ -41,11 +41,12 @@ export const formatDateBR = (dateStr: string) => {
 
 export const formatTimeBR = (date: string | Date) => {
   if (!date) return '-';
+  const zonedDate = toZonedTime(new Date(date), TIMEZONE);
   return new Intl.DateTimeFormat('pt-BR', {
     timeZone: TIMEZONE,
     hour: '2-digit',
     minute: '2-digit'
-  }).format(new Date(date));
+  }).format(zonedDate);
 };
 
 export const formatDuration = (ms: number) => {

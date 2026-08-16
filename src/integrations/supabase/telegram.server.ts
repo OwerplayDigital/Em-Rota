@@ -67,6 +67,15 @@ export const handleTelegramUpdate = async (body: any) => {
   const formatCurrency = (val: number | null) => val !== null ? `R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Ainda não informado';
   const formatNumberBR = (val: number | null) => val !== null ? val.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : 'Ainda não informado';
 
+  const formatTimeBR = (date: string | Date) => {
+    if (!date) return '-';
+    return new Intl.DateTimeFormat('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(new Date(date));
+  };
+
   const getActiveWorkDay = async (): Promise<any> => {
     const res = await (supabaseAdmin.from('work_days').select('*').eq('date', today as any).maybeSingle() as any);
     return res.data;
@@ -127,9 +136,11 @@ export const handleTelegramUpdate = async (body: any) => {
 
   const correctionMenu = {
     keyboard: [
+      [{ text: 'HORÁRIO DE INÍCIO' }, { text: 'HORÁRIO DE ENCERRAMENTO' }],
+      [{ text: 'ODÔMETRO INICIAL' }, { text: 'ODÔMETRO FINAL' }],
       [{ text: 'GANHOS' }, { text: 'ENTREGAS' }],
-      [{ text: 'ODÔMETRO FINAL' }, { text: 'REABRIR DIA' }],
-      [{ text: 'CANCELAR' }]
+      [{ text: 'ADICIONAR JORNADA' }, { text: 'REABRIR DIA' }],
+      [{ text: 'VOLTAR' }]
     ],
     resize_keyboard: true
   };
@@ -147,9 +158,9 @@ export const handleTelegramUpdate = async (body: any) => {
     return;
   }
 
-  if (textInput === 'CANCELAR') {
+  if (textInput === 'CANCELAR' || textInput === 'VOLTAR') {
     // Reset correction state if any
-    if (activeDay?.notes?.startsWith('CORRECT:')) {
+    if (activeDay?.notes?.includes('CORRECT:') || activeDay?.notes?.includes('AWAITING:') || activeDay?.notes?.includes('ADDSESSION:')) {
       await (supabaseAdmin.from('work_days').update({ notes: null }).eq('id', activeDay.id) as any);
     }
     await send('Operação cancelada.', mainMenu);
@@ -284,9 +295,44 @@ export const handleTelegramUpdate = async (body: any) => {
     return;
   }
 
+  if (textInput === 'ODÔMETRO INICIAL') {
+    await (supabaseAdmin.from('work_days').update({ notes: 'CORRECT:ODO_START' }).eq('id', activeDay.id) as any);
+    await send('Qual é o odômetro inicial correto?', cancelMenu);
+    return;
+  }
+
   if (textInput === 'ODÔMETRO FINAL') {
     await (supabaseAdmin.from('work_days').update({ notes: 'CORRECT:ODO_END' }).eq('id', activeDay.id) as any);
     await send('Qual é o odômetro final correto?', cancelMenu);
+    return;
+  }
+
+  if (textInput === 'HORÁRIO DE INÍCIO' || textInput === 'HORÁRIO DE ENCERRAMENTO') {
+    const { data: sessions } = await (supabaseAdmin.from('sessions').select('*').eq('work_day_id', activeDay.id) as any);
+    const mode = textInput === 'HORÁRIO DE INÍCIO' ? 'START_TIME' : 'END_TIME';
+
+    if (!sessions || sessions.length === 0) {
+      await send('Nenhuma jornada encontrada para este dia.', correctionMenu);
+      return;
+    }
+
+    if (sessions.length === 1) {
+      await (supabaseAdmin.from('work_days').update({ notes: `CORRECT:${mode}:${sessions[0].id}` }).eq('id', activeDay.id) as any);
+      await send(`Qual o novo ${textInput.toLowerCase()}?\nExemplo: 09:30`, cancelMenu);
+    } else {
+      await (supabaseAdmin.from('work_days').update({ notes: `CORRECT:SELECT_SESSION:${mode}` }).eq('id', activeDay.id) as any);
+      const sessionButtons = sessions.map((s: any, i: number) => [{ text: `JORNADA ${i + 1} — ${formatTimeBR(s.start_time)}` }]);
+      await send('Qual jornada deseja corrigir?', {
+        keyboard: [...sessionButtons, [{ text: 'VOLTAR' }]],
+        resize_keyboard: true
+      });
+    }
+    return;
+  }
+
+  if (textInput === 'ADICIONAR JORNADA') {
+    await (supabaseAdmin.from('work_days').update({ notes: 'ADDSESSION:START_TIME' }).eq('id', activeDay.id) as any);
+    await send('Qual o horário de início da nova jornada?\nExemplo: 09:20', cancelMenu);
     return;
   }
 
@@ -307,20 +353,110 @@ export const handleTelegramUpdate = async (body: any) => {
     return;
   }
 
-  // Input Handling (Numeric/Prices)
+  // Input Handling (Numeric/Prices/Times)
+  const isTimeInput = /^\d{1,2}:\d{2}$/.test(textInput);
   const rawVal = textInput.replace('R$', '').replace(/\s/g, '').replace(',', '.').trim();
   const num = parseFloat(rawVal);
 
-  if (!isNaN(num)) {
-    // 1. Correction Handling
-    if (activeDay?.notes?.startsWith('CORRECT:')) {
-      const mode = activeDay.notes.split(':')[1];
-      let update: any = { notes: null };
+  if (activeDay?.notes?.startsWith('CORRECT:SELECT_SESSION:')) {
+    const mode = activeDay.notes.split(':')[2]; // START_TIME or END_TIME
+    const sessionMatch = textInput.match(/JORNADA (\d+)/);
+    if (sessionMatch) {
+      const { data: sessions } = await (supabaseAdmin.from('sessions').select('*').eq('work_day_id', activeDay.id).order('start_time', { ascending: true }) as any);
+      const index = parseInt(sessionMatch[1]) - 1;
+      const session = sessions?.[index];
+      if (session) {
+        await (supabaseAdmin.from('work_days').update({ notes: `CORRECT:${mode}:${session.id}` }).eq('id', activeDay.id) as any);
+        await send(`Qual o novo horário de ${mode === 'START_TIME' ? 'início' : 'encerramento'} para a Jornada ${index + 1}?\nExemplo: 09:30`, cancelMenu);
+        return;
+      }
+    }
+    await send('Selecione uma jornada válida.', cancelMenu);
+    return;
+  }
+
+  if (activeDay?.notes?.startsWith('ADDSESSION:')) {
+    const mode = activeDay.notes.split(':')[1];
+    if (mode === 'START_TIME') {
+      if (!isTimeInput) {
+        await send('⚠️ Formato de hora inválido. Use HH:MM (ex: 09:30).', cancelMenu);
+        return;
+      }
+      const [h, m] = textInput.split(':').map(Number);
+      if (h < 0 || h > 23 || m < 0 || m > 59) {
+        await send('⚠️ Hora ou minuto inválido.', cancelMenu);
+        return;
+      }
+      const newStart = new Date(today + 'T00:00:00Z');
+      newStart.setUTCHours(h + 3, m, 0, 0); // Convert local to UTC (assuming -3h)
       
+      await (supabaseAdmin.from('work_days').update({ notes: `ADDSESSION:ODO_START:${newStart.toISOString()}` }).eq('id', activeDay.id) as any);
+      await send('Qual o odômetro inicial desta jornada?', cancelMenu);
+      return;
+    }
+    if (mode === 'ODO_START') {
+      const startTime = activeDay.notes.split(':')[2] + ':' + activeDay.notes.split(':')[3] + ':' + activeDay.notes.split(':')[4];
+      if (isNaN(num)) {
+        await send('⚠️ Valor inválido. Informe o odômetro inicial:', cancelMenu);
+        return;
+      }
+      
+      // Check for duplicates
+      const { data: existing } = await (supabaseAdmin.from('sessions').select('*').eq('work_day_id', activeDay.id).eq('start_time', startTime) as any);
+      if (existing && existing.length > 0) {
+        await (supabaseAdmin.from('work_days').update({ notes: null }).eq('id', activeDay.id) as any);
+        await send('⚠️ Já existe uma jornada registrada com este horário.', mainMenu);
+        return;
+      }
+
+      await (supabaseAdmin.from('sessions').insert({ 
+        work_day_id: activeDay.id, 
+        start_time: startTime,
+        status: 'completed' as any,
+        end_time: startTime // Default to start time, user can correct later
+      }) as any);
+      
+      await (supabaseAdmin.from('work_days').update({ notes: null }).eq('id', activeDay.id) as any);
+      const updatedDay = await getActiveWorkDay();
+      const summary = await getSummary(updatedDay);
+      await send('Jornada adicionada com sucesso!\n\nNota: O horário de encerramento foi definido igual ao de início. Use CORRIGIR DIA para ajustar se necessário.', mainMenu);
+      await send(summary);
+      return;
+    }
+  }
+
+  if (activeDay?.notes?.startsWith('CORRECT:')) {
+    const parts = activeDay.notes.split(':');
+    const mode = parts[1];
+    let update: any = { notes: null };
+    
+    if (mode === 'START_TIME' || mode === 'END_TIME') {
+      if (!isTimeInput) {
+        await send('⚠️ Formato de hora inválido. Use HH:MM (ex: 09:30).', cancelMenu);
+        return;
+      }
+      const sessionId = parts[2];
+      const [h, m] = textInput.split(':').map(Number);
+      const newDate = new Date(today + 'T00:00:00Z');
+      newDate.setUTCHours(h + 3, m, 0, 0);
+
+      if (mode === 'START_TIME') {
+        await (supabaseAdmin.from('sessions').update({ start_time: newDate.toISOString() }).eq('id', sessionId) as any);
+      } else {
+        const { data: sess } = await (supabaseAdmin.from('sessions').select('start_time').eq('id', sessionId).single() as any);
+        if (newDate < new Date(sess.start_time)) {
+          await send('⚠️ O encerramento não pode ser anterior ao início. Informe novamente:', cancelMenu);
+          return;
+        }
+        await (supabaseAdmin.from('sessions').update({ end_time: newDate.toISOString() }).eq('id', sessionId) as any);
+      }
+    } else if (!isNaN(num)) {
       if (mode === 'EARNED') {
         update.total_earned = num;
       } else if (mode === 'DELIVERIES') {
         update.total_deliveries = Math.round(num);
+      } else if (mode === 'ODO_START') {
+        update.odometer_start = num;
       } else if (mode === 'ODO_END') {
         if (num < (Number(activeDay.odometer_start) || 0)) {
           await send(`⚠️ O odômetro final não pode ser menor que o inicial (${formatNumberBR(activeDay.odometer_start)}).`, cancelMenu);
@@ -328,16 +464,20 @@ export const handleTelegramUpdate = async (body: any) => {
         }
         update.odometer_end = num;
       }
-
-      const res = await (supabaseAdmin.from('work_days').update(update).eq('id', activeDay.id).select().single() as any);
-      const summary = await getSummary(res.data);
-      await send('Dados atualizados.', {
-        keyboard: [[{ text: 'CORRIGIR DIA' }, { text: 'LIMPAR CHAT' }, { text: 'RESUMO' }], [{ text: 'MENU' }]],
-        resize_keyboard: true
-      });
-      await send(summary);
+    } else {
+      await send('⚠️ Entrada inválida.', cancelMenu);
       return;
     }
+
+    const res = await (supabaseAdmin.from('work_days').update(update).eq('id', activeDay.id).select().single() as any);
+    const summary = await getSummary(res.data);
+    await send('CORREÇÃO REALIZADA', {
+      keyboard: [[{ text: 'CORRIGIR DIA' }, { text: 'LIMPAR CHAT' }, { text: 'RESUMO' }], [{ text: 'MENU' }]],
+      resize_keyboard: true
+    });
+    await send(summary);
+    return;
+  }
 
     // 2. Normal Flow
     if (!activeDay || activeDay.odometer_start === null) {
