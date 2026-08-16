@@ -52,20 +52,19 @@ export function Sidebar() {
       )}
 
       <aside className={cn(
-        "fixed left-0 top-0 h-full w-64 bg-sidebar/90 backdrop-blur-3xl border-r border-sidebar-border flex flex-col z-[100] transition-all duration-500 md:translate-x-0",
+        "fixed left-0 top-0 h-full w-64 bg-sidebar border-r border-sidebar-border flex flex-col z-[100] transition-all duration-500 md:translate-x-0 shadow-[4px_0_24px_rgba(0,0,0,0.02)]",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        <div className="p-10">
+        <div className="p-8 pt-10">
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-[0_0_20px_rgba(var(--color-primary),0.3)]">
-            <TrendingUp className="w-4 h-4 text-primary-foreground" />
+            <div className="w-9 h-9 rounded-2xl bg-primary flex items-center justify-center shadow-[0_8px_16px_rgba(var(--color-primary),0.2)]">
+              <TrendingUp className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <h1 className="text-xl font-bold tracking-tighter text-foreground">
+              EM ROTA
+            </h1>
           </div>
-          <h1 className="text-xl font-bold tracking-tighter bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent">
-            EM ROTA
-          </h1>
-        </div>
-        <div className="text-[9px] font-bold text-muted-foreground/30 uppercase tracking-[0.3em] ml-11">Pro Edition</div>
-
+          <div className="text-[9px] font-bold text-primary/40 uppercase tracking-[0.3em] ml-12">Pro Edition</div>
         </div>
 
         <nav className="flex-1 px-4 space-y-1.5 mt-8">
