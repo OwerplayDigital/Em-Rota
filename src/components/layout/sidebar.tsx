@@ -58,7 +58,7 @@ export function Sidebar() {
         <div className="p-8 pt-10">
           <div className="flex items-center gap-3 mb-1">
             <div className="w-9 h-9 rounded-2xl bg-primary flex items-center justify-center shadow-[0_8px_16px_rgba(var(--color-primary),0.2)] overflow-hidden">
-              <img src="/favicon.png" alt="Logo" className="w-5 h-5 brightness-0 invert" />
+              <img src="/favicon.png" alt="Logo" className="w-6 h-6 object-contain" />
             </div>
             <h1 className="text-xl font-bold tracking-tighter text-foreground">
               EM ROTA
