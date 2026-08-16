@@ -213,7 +213,7 @@ function DetailItem({ icon: Icon, label, value, color = "text-foreground" }: any
       <Icon className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
       <div className="space-y-0.5">
         <div className="text-[9px] text-muted-foreground/50 uppercase tracking-tighter">{label}</div>
-        <div className={cn("text-xl font-light tracking-tight", color)}>{value}</div>
+        <div className={cn("text-xl font-bold tracking-tight", color)}>{value}</div>
       </div>
     </div>
   )
