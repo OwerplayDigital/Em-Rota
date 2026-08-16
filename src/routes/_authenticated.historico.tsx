@@ -47,11 +47,11 @@ function HistoryPage() {
   return (
     <div className="p-6 md:p-10 space-y-8 bg-background min-h-screen text-foreground relative overflow-hidden">
       <div className="space-y-1.5">
-        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-br from-foreground to-foreground/50 bg-clip-text text-transparent">Histórico</h1>
-        <p className="text-muted-foreground text-sm font-light">Detalhamento das suas jornadas passadas.</p>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Histórico</h1>
+        <p className="text-muted-foreground text-sm font-light tracking-wide uppercase">Detalhamento das suas jornadas passadas.</p>
       </div>
 
-      <Card className="bg-card border-border backdrop-blur-sm overflow-hidden rounded-2xl relative z-10">
+      <Card className="bg-card border-border shadow-sm overflow-hidden rounded-2xl relative z-10">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -77,7 +77,7 @@ function HistoryPage() {
                     <TableCell className="text-foreground/80">{item.total_deliveries || 0}</TableCell>
                     <TableCell className="text-foreground/80">{(item.odometer_end && item.odometer_start) ? `${(Number(item.odometer_end) - Number(item.odometer_start)).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} km` : '—'}</TableCell>
                     <TableCell className="text-foreground/80">{formatDuration(item.metrics.totalMs)}</TableCell>
-                    <TableCell className="text-emerald-500 font-bold text-right pr-8">
+                    <TableCell className="text-primary font-bold text-right pr-8">
                       <div className="flex items-center justify-end gap-2">
                         {item.metrics.avgPerHour > 0 ? `${formatCurrency(item.metrics.avgPerHour)}/h` : '—'}
                         <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
@@ -130,7 +130,7 @@ function HistoryPage() {
 
               <div className="flex-1 space-y-8 overflow-y-auto pr-2 custom-scrollbar">
                 <div className="grid grid-cols-2 gap-4">
-                  <DetailItem icon={DollarSign} label="Ganhos Totais" value={formatCurrency(selectedDay.total_earned || 0)} color="text-emerald-500" />
+                  <DetailItem icon={DollarSign} label="Ganhos Totais" value={formatCurrency(selectedDay.total_earned || 0)} color="text-primary" />
                   <DetailItem icon={Package} label="Entregas" value={(selectedDay.total_deliveries || 0).toString()} />
                   <DetailItem icon={MapPin} label="Distância" value={(selectedDay.odometer_end && selectedDay.odometer_start) ? `${(Number(selectedDay.odometer_end) - Number(selectedDay.odometer_start)).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} km` : '—'} />
                   <DetailItem icon={Clock} label="Duração" value={formatDuration(selectedDay.metrics.totalMs)} />
@@ -141,12 +141,12 @@ function HistoryPage() {
                   <div className="bg-muted/20 rounded-2xl p-6 border border-border flex justify-between items-center relative overflow-hidden">
                     <div className="space-y-1">
                       <div className="text-[9px] text-muted-foreground/50 uppercase tracking-tighter">Início</div>
-                      <div className="text-xl font-light text-foreground">{selectedDay.odometer_start !== null ? Number(selectedDay.odometer_start).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '—'} km</div>
+                      <div className="text-xl font-bold text-foreground">{selectedDay.odometer_start !== null ? Number(selectedDay.odometer_start).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '—'} km</div>
                     </div>
                     <div className="h-8 w-px bg-border" />
                     <div className="space-y-1 text-right">
                       <div className="text-[9px] text-muted-foreground/50 uppercase tracking-tighter">Fim</div>
-                      <div className="text-xl font-light text-foreground">{selectedDay.odometer_end !== null ? Number(selectedDay.odometer_end).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '—'} km</div>
+                      <div className="text-xl font-bold text-foreground">{selectedDay.odometer_end !== null ? Number(selectedDay.odometer_end).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '—'} km</div>
                     </div>
                   </div>
                 </div>
@@ -156,7 +156,7 @@ function HistoryPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 rounded-2xl bg-muted/20 border border-border">
                       <div className="text-[9px] text-muted-foreground/50 uppercase tracking-tighter mb-1">R$ / HORA</div>
-                      <div className="text-lg font-medium text-emerald-500">{selectedDay.metrics.avgPerHour > 0 ? `${formatCurrency(selectedDay.metrics.avgPerHour)}/h` : '—'}</div>
+                      <div className="text-lg font-bold text-primary">{selectedDay.metrics.avgPerHour > 0 ? `${formatCurrency(selectedDay.metrics.avgPerHour)}/h` : '—'}</div>
                     </div>
                     <div className="p-4 rounded-2xl bg-muted/20 border border-border">
                       <div className="text-[9px] text-muted-foreground/50 uppercase tracking-tighter mb-1">Jornadas</div>
@@ -213,7 +213,7 @@ function DetailItem({ icon: Icon, label, value, color = "text-foreground" }: any
       <Icon className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
       <div className="space-y-0.5">
         <div className="text-[9px] text-muted-foreground/50 uppercase tracking-tighter">{label}</div>
-        <div className={cn("text-xl font-light tracking-tight", color)}>{value}</div>
+        <div className={cn("text-xl font-bold tracking-tight", color)}>{value}</div>
       </div>
     </div>
   )

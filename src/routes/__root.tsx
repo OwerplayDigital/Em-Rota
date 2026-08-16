@@ -124,7 +124,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className={cn("min-h-screen bg-[oklch(0.129_0.042_264.695)]", !isPublicRoute && "md:pl-64")}>
+      <div className={cn("min-h-screen bg-background transition-colors duration-500", !isPublicRoute && "md:pl-64")}>
         {!isPublicRoute && <Sidebar />}
         <main className="relative z-10">
           <Outlet />

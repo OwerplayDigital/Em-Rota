@@ -81,10 +81,10 @@ function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[oklch(0.129_0.042_264.695)] p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
       {/* Background Decor */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -z-10 translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -z-10 -translate-x-1/2 translate-y-1/2" />
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/3 rounded-full blur-[120px] -z-10 translate-x-1/2 -translate-y-1/2" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-primary/3 rounded-full blur-[120px] -z-10 -translate-x-1/2 translate-y-1/2" />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -92,13 +92,13 @@ function AuthPage() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md z-10"
       >
-        <Card className="bg-card border-border backdrop-blur-xl rounded-[2.5rem] overflow-hidden shadow-2xl">
+        <Card className="bg-card border-border shadow-2xl rounded-[2.5rem] overflow-hidden">
           <CardHeader className="space-y-4 pt-10 pb-6 text-center">
             <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
               <LogIn className="w-8 h-8 text-primary" />
             </div>
             <div className="space-y-2">
-              <CardTitle className="text-3xl font-bold tracking-tight bg-gradient-to-br from-foreground to-foreground/50 bg-clip-text text-transparent">
+              <CardTitle className="text-3xl font-bold tracking-tight text-foreground">
                 EM ROTA
               </CardTitle>
               <p className="text-muted-foreground text-xs font-light uppercase tracking-[0.2em]">
