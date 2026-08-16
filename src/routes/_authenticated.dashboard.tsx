@@ -84,7 +84,7 @@ function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 relative z-10 order-3">
-        <MetricCard title="GANHOS" value={formatCurrency(metrics.totalEarned)} icon={DollarSign} />
+        <MetricCard title="GANHOS" value={formatCurrency(metrics.totalEarned)} icon={DollarSign} isHighlight />
         <MetricCard title="ENTREGAS" value={metrics.totalDeliveries.toString()} icon={Package} />
         <MetricCard title="TEMPO NA RUA" value={formatDuration(metrics.totalMs)} icon={Clock} />
         <MetricCard title="DISTÂNCIA" value={`${metrics.totalDistance.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} km`} icon={MapPin} />
@@ -217,17 +217,28 @@ function DashboardPage() {
   )
 }
 
-function MetricCard({ title, value, icon: Icon, trend }: { title: string; value: string; icon: any; trend?: string }) {
+function MetricCard({ title, value, icon: Icon, isHighlight }: { title: string; value: string; icon: any; isHighlight?: boolean }) {
   return (
-    <Card className="bg-card border-border/60 shadow-sm rounded-3xl overflow-hidden group hover:border-primary/40 transition-all duration-500">
+    <Card className={cn(
+      "border-border/60 shadow-sm rounded-3xl overflow-hidden group transition-all duration-500",
+      isHighlight ? "bg-primary/5 border-primary/20 hover:border-primary/40" : "bg-card hover:border-primary/40"
+    )}>
       <CardHeader className="flex flex-row items-center justify-between pb-1 space-y-0 pt-4 px-4 md:pt-6 md:px-6">
-        <CardTitle className="text-[9px] md:text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em]">{title}</CardTitle>
-        <Icon className="w-3 h-3 md:w-4 md:h-4 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+        <CardTitle className={cn(
+          "text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em]",
+          isHighlight ? "text-primary/70" : "text-muted-foreground/60"
+        )}>{title}</CardTitle>
+        <Icon className={cn(
+          "w-3 h-3 md:w-4 md:h-4 transition-colors",
+          isHighlight ? "text-primary" : "text-muted-foreground/40 group-hover:text-primary"
+        )} />
       </CardHeader>
       <CardContent className="px-4 pb-4 pt-1 md:px-6 md:pb-6 md:pt-2">
         <div className="flex items-baseline gap-2">
-          <div className="text-xl md:text-3xl font-bold tracking-tight text-foreground transition-colors">{value}</div>
-          {trend && <span className="text-[9px] md:text-[10px] text-emerald-500 font-bold">{trend}</span>}
+          <div className={cn(
+            "text-xl md:text-3xl font-bold tracking-tight transition-colors",
+            isHighlight ? "text-primary" : "text-foreground"
+          )}>{value}</div>
         </div>
       </CardContent>
     </Card>
@@ -236,11 +247,11 @@ function MetricCard({ title, value, icon: Icon, trend }: { title: string; value:
 
 function ChartCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <Card className="bg-card border-border backdrop-blur-xl overflow-hidden rounded-[2.5rem] p-2">
+    <Card className="bg-card border-border shadow-sm overflow-hidden rounded-[2.5rem] p-2">
       <CardHeader className="p-6 md:p-8 pb-2 md:pb-4">
         <div className="space-y-1">
-          <CardTitle className="text-base md:text-lg font-medium text-foreground">{title}</CardTitle>
-          {subtitle && <p className="text-[10px] md:text-xs text-muted-foreground font-light">{subtitle}</p>}
+          <CardTitle className="text-base md:text-lg font-bold text-foreground">{title}</CardTitle>
+          {subtitle && <p className="text-[10px] md:text-xs text-muted-foreground font-light uppercase tracking-wider">{subtitle}</p>}
         </div>
       </CardHeader>
       <CardContent className="p-2 md:p-4 pt-0">
@@ -252,9 +263,9 @@ function ChartCard({ title, subtitle, children }: { title: string; subtitle?: st
 
 function SmallMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] bg-card border border-border space-y-1 md:space-y-2 hover:bg-muted/30 transition-all duration-300 group">
-      <div className="text-[8px] md:text-[9px] font-bold text-muted-foreground tracking-[0.2em] uppercase transition-colors">{label}</div>
-      <div className="text-lg md:text-2xl font-light text-foreground/80 group-hover:text-foreground transition-colors">{value}</div>
+    <div className="p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] bg-card border border-border shadow-sm space-y-1 md:space-y-2 hover:bg-muted/30 transition-all duration-300 group">
+      <div className="text-[8px] md:text-[9px] font-bold text-muted-foreground/60 tracking-[0.2em] uppercase transition-colors">{label}</div>
+      <div className="text-lg md:text-2xl font-bold text-foreground/80 group-hover:text-foreground transition-colors">{value}</div>
     </div>
   )
 }

@@ -55,15 +55,15 @@ function PerformancePage() {
       animate={{ opacity: 1, y: 0 }}
       className="p-6 md:p-10 space-y-12 bg-background min-h-screen text-foreground relative overflow-hidden"
     >
-      <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-[150px] -z-10 -translate-x-1/2 -translate-y-1/2" />
+      <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-primary/3 rounded-full blur-[150px] -z-10 -translate-x-1/2 -translate-y-1/2" />
 
       <div className="space-y-1.5 relative z-10">
         <div className="flex items-center gap-2 mb-2">
-          <Zap className="w-3 h-3 text-emerald-500 fill-emerald-500" />
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Insights Avançados</span>
+          <Zap className="w-3 h-3 text-primary" />
+          <span className="text-[10px] font-bold text-primary/70 uppercase tracking-[0.2em]">Insights Avançados</span>
         </div>
-        <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-br from-foreground to-foreground/50 bg-clip-text text-transparent">Desempenho</h1>
-        <p className="text-muted-foreground text-sm font-light">Análise profunda da sua rentabilidade e tendências.</p>
+        <h1 className="text-4xl font-bold tracking-tight text-foreground">Desempenho</h1>
+        <p className="text-muted-foreground text-sm font-light tracking-wide uppercase">Análise profunda da sua rentabilidade e tendências.</p>
       </div>
 
       <div className="grid gap-12 md:grid-cols-3 relative z-10">
@@ -76,7 +76,7 @@ function PerformancePage() {
 
       </div>
 
-      <Card className="bg-card border-border p-20 text-center rounded-[3rem] backdrop-blur-xl relative z-10 group overflow-hidden">
+      <Card className="bg-card border-border p-20 text-center rounded-[3rem] shadow-sm relative z-10 group overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-foreground/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
         <CardContent className="space-y-8 relative z-10">
           <div className="text-muted-foreground/30 uppercase tracking-[0.6em] text-[10px] font-bold">Análise Comparativa</div>
@@ -130,7 +130,7 @@ function MetricItem({ icon: Icon, label, value }: { icon: any; label: string; va
         </div>
         <div className="text-[10px] text-muted-foreground/30 uppercase tracking-[0.2em] font-bold group-hover:text-muted-foreground/50 transition-colors">{label}</div>
       </div>
-      <div className="text-4xl font-light text-foreground/80 tracking-tighter group-hover:text-foreground transition-colors">{value}</div>
+      <div className="text-4xl font-bold text-foreground/80 tracking-tighter group-hover:text-foreground transition-colors">{value}</div>
     </div>
   )
 }
