@@ -52,7 +52,7 @@ export function Sidebar() {
       )}
 
       <aside className={cn(
-        "fixed left-0 top-0 h-full w-64 bg-card/80 md:bg-card/40 backdrop-blur-3xl border-r border-border flex flex-col z-[100] transition-all duration-500 md:translate-x-0",
+        "fixed left-0 top-0 h-full w-64 bg-sidebar/90 backdrop-blur-3xl border-r border-sidebar-border flex flex-col z-[100] transition-all duration-500 md:translate-x-0",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="p-10">
