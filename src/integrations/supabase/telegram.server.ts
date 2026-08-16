@@ -553,7 +553,7 @@ export const handleTelegramUpdate = async (body: any) => {
       });
       return;
     }
-  }
+
 
   await send('Não entendi o comando. Use os botões do menu.', mainMenu);
 };
