@@ -52,69 +52,68 @@ export function Sidebar() {
       )}
 
       <aside className={cn(
-        "fixed left-0 top-0 h-full w-64 bg-sidebar/90 backdrop-blur-3xl border-r border-sidebar-border flex flex-col z-[100] transition-all duration-500 md:translate-x-0",
+        "fixed left-0 top-0 h-full w-64 bg-sidebar border-r border-sidebar-border flex flex-col z-[100] transition-all duration-500 md:translate-x-0 shadow-[4px_0_24px_rgba(0,0,0,0.02)]",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        <div className="p-10">
+        <div className="p-8 pt-10">
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-[0_0_20px_rgba(var(--color-primary),0.3)]">
-            <TrendingUp className="w-4 h-4 text-primary-foreground" />
+            <div className="w-9 h-9 rounded-2xl bg-primary flex items-center justify-center shadow-[0_8px_16px_rgba(var(--color-primary),0.2)]">
+              <TrendingUp className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <h1 className="text-xl font-bold tracking-tighter text-foreground">
+              EM ROTA
+            </h1>
           </div>
-          <h1 className="text-xl font-bold tracking-tighter bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent">
-            EM ROTA
-          </h1>
-        </div>
-        <div className="text-[9px] font-bold text-muted-foreground/30 uppercase tracking-[0.3em] ml-11">Pro Edition</div>
-
+          <div className="text-[9px] font-bold text-primary/40 uppercase tracking-[0.3em] ml-12">Pro Edition</div>
         </div>
 
-        <nav className="flex-1 px-6 space-y-2 mt-8">
+        <nav className="flex-1 px-4 space-y-1.5 mt-8">
           {navItems.map((item) => (
             <Link
               key={item.href}
               to={item.href}
               onClick={() => setIsOpen(false)}
               className={cn(
-                "flex items-center gap-4 px-5 py-4 rounded-[1.25rem] transition-all duration-500 group relative",
-                "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
-                "[&.active]:bg-sidebar-primary/10 [&.active]:text-sidebar-primary [&.active]:shadow-[inset_0_0_20px_rgba(var(--color-sidebar-primary),0.02)]"
+                "flex items-center gap-3.5 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative",
+                "text-sidebar-foreground/50 hover:text-primary hover:bg-primary/5",
+                "[&.active]:bg-primary/10 [&.active]:text-primary [&.active]:shadow-sm"
               )}
             >
-              <item.icon className="w-5 h-5 opacity-40 group-hover:opacity-100 transition-all duration-500 group-[.active]:opacity-100 group-[.active]:text-primary" />
-              <span className="font-medium text-sm tracking-tight">
+              <item.icon className="w-5 h-5 opacity-40 group-hover:opacity-100 transition-all duration-300 group-[.active]:opacity-100" />
+              <span className="font-semibold text-[13px] tracking-tight">
                 {item.label}
               </span>
-              <ChevronRight className="ml-auto w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-40 group-hover:translate-x-0 transition-all duration-500" />
+              <ChevronRight className="ml-auto w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-40 group-hover:translate-x-0 transition-all duration-300" />
               
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 group-[.active]:h-4 bg-primary rounded-full transition-all duration-500 opacity-0 group-[.active]:opacity-100 -translate-x-3 group-[.active]:-translate-x-1" />
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 group-[.active]:h-5 bg-primary rounded-full transition-all duration-300 opacity-0 group-[.active]:opacity-100 -translate-x-1" />
             </Link>
           ))}
         </nav>
 
-        <div className="p-8 border-t border-border">
-          <div className="p-5 rounded-[2rem] bg-muted/10 border border-border space-y-4 hover:bg-muted/20 transition-all duration-500 group">
+        <div className="p-6 border-t border-sidebar-border/50">
+          <div className="p-4 rounded-3xl bg-primary/[0.03] border border-primary/5 space-y-3 hover:bg-primary/[0.05] transition-all duration-300 group">
             <div className="flex items-center justify-between">
-              <div className="text-[9px] text-muted-foreground/40 uppercase tracking-widest font-bold group-hover:text-muted-foreground/60 transition-colors">Telegram Bot</div>
-              <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)]" />
+              <div className="text-[8px] text-primary/40 uppercase tracking-[0.2em] font-bold group-hover:text-primary/60 transition-colors">Telegram Bot</div>
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]" />
             </div>
             
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-muted/20 flex items-center justify-center border border-border group-hover:bg-muted/30 transition-colors">
-                <Smartphone className="w-5 h-5 text-muted-foreground/40 group-hover:text-muted-foreground/70 transition-colors" />
+              <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center border border-primary/5 shadow-sm group-hover:border-primary/10 transition-colors">
+                <Smartphone className="w-4 h-4 text-primary/40 group-hover:text-primary/70 transition-colors" />
               </div>
               <div className="space-y-0.5">
-                <div className="text-[11px] font-medium text-foreground/80">Conectado</div>
-                <p className="text-[9px] text-muted-foreground/30 leading-tight">Sync 100% ativo</p>
+                <div className="text-[10px] font-bold text-foreground/80">Conectado</div>
+                <p className="text-[9px] text-primary/30 leading-tight font-medium">Sincronização Ativa</p>
               </div>
             </div>
           </div>
           
           <button 
             onClick={handleLogout}
-            className="w-full mt-6 py-4 flex items-center justify-center gap-3 text-muted-foreground/40 hover:text-muted-foreground/80 transition-colors group"
+            className="w-full mt-4 py-3 flex items-center justify-center gap-2 text-muted-foreground/40 hover:text-destructive/60 transition-all duration-300 group"
           >
-            <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">Sair do Painel</span>
+            <LogOut className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+            <span className="text-[9px] font-bold uppercase tracking-[0.2em]">Sair do Painel</span>
           </button>
         </div>
       </aside>
