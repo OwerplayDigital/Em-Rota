@@ -363,7 +363,7 @@ export const handleTelegramUpdate = async (body: any) => {
     const sessionMatch = textInput.match(/JORNADA (\d+)/);
     if (sessionMatch) {
       const { data: sessions } = await (supabaseAdmin.from('sessions').select('*').eq('work_day_id', activeDay.id).order('start_time', { ascending: true }) as any);
-      const index = parseInt(sessionMatch[1]) - 1;
+      const index = parseInt(sessionMatch[1]!) - 1;
       const session = sessions?.[index];
       if (session) {
         await (supabaseAdmin.from('work_days').update({ notes: `CORRECT:${mode}:${session.id}` }).eq('id', activeDay.id) as any);
@@ -382,7 +382,7 @@ export const handleTelegramUpdate = async (body: any) => {
         await send('⚠️ Formato de hora inválido. Use HH:MM (ex: 09:30).', cancelMenu);
         return;
       }
-      const [h, m] = textInput.split(':').map(Number);
+      const [h = 0, m = 0] = textInput.split(':').map(Number);
       if (h < 0 || h > 23 || m < 0 || m > 59) {
         await send('⚠️ Hora ou minuto inválido.', cancelMenu);
         return;
@@ -436,7 +436,7 @@ export const handleTelegramUpdate = async (body: any) => {
         return;
       }
       const sessionId = parts[2];
-      const [h, m] = textInput.split(':').map(Number);
+      const [h = 0, m = 0] = textInput.split(':').map(Number);
       const newDate = new Date(today + 'T00:00:00Z');
       newDate.setUTCHours(h + 3, m, 0, 0);
 
@@ -553,7 +553,7 @@ export const handleTelegramUpdate = async (body: any) => {
       });
       return;
     }
-  }
+
 
   await send('Não entendi o comando. Use os botões do menu.', mainMenu);
 };
