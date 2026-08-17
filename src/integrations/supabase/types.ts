@@ -55,6 +55,7 @@ export type Database = {
       work_days: {
         Row: {
           created_at: string | null
+          daily_goal: number | null
           date: string
           id: string
           notes: string | null
@@ -67,6 +68,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          daily_goal?: number | null
           date: string
           id?: string
           notes?: string | null
@@ -79,6 +81,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          daily_goal?: number | null
           date?: string
           id?: string
           notes?: string | null
