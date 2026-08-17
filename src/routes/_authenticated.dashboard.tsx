@@ -12,18 +12,22 @@ import {
   Bar,
 } from 'recharts'
 import { motion } from 'framer-motion'
-import { TrendingUp, Clock, Package, MapPin, DollarSign, Calendar } from 'lucide-react'
-import { useState, useMemo } from 'react'
+import { TrendingUp, Clock, Package, MapPin, DollarSign, Calendar, Target, Save, CheckCircle2 } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
 import { cn } from '@/lib/utils'
-import { useSuspenseQuery } from '@tanstack/react-query'
-import { fetchDashboardData } from '@/lib/dashboard.functions'
+import { useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { fetchDashboardData, saveDailyGoal } from '@/lib/dashboard.functions'
 import { 
   getDatesForPeriod, 
   calculateMetrics, 
   getChartData, 
   formatCurrency, 
-  formatDuration 
+  formatDuration,
+  calculateGoalMetrics 
 } from '@/lib/dashboard-utils'
+import { Progress } from '@/components/ui/progress'
+import { toast } from 'sonner'
+
 
 export const Route = createFileRoute('/_authenticated/dashboard')({
   component: DashboardPage,
@@ -35,15 +39,43 @@ function DashboardPage() {
   const [activePeriod, setActivePeriod] = useState('7 dias')
   const { startDate, endDate } = useMemo(() => getDatesForPeriod(activePeriod), [activePeriod])
   
+  const queryClient = useQueryClient();
   const { data } = useSuspenseQuery({
     queryKey: ['dashboard', startDate, endDate],
     queryFn: () => fetchDashboardData({ data: { startDate, endDate } })
   })
 
+  const goalMutation = useMutation({
+    mutationFn: (goal: number) => saveDailyGoal({ data: { goal } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      toast.success('Meta diária atualizada com sucesso!');
+    },
+    onError: () => toast.error('Erro ao salvar meta.')
+  });
 
   const metrics = useMemo(() => calculateMetrics(data.workDays, data.sessions), [data])
   const chartData = useMemo(() => getChartData(data.workDays, data.sessions), [data])
+  const goalMetrics = useMemo(() => calculateGoalMetrics(data.workDays, data.todayGoal), [data])
   const hasData = data.workDays.length > 0;
+
+  const [goalInput, setGoalInput] = useState('')
+
+  useEffect(() => {
+    if (data.todayGoal) {
+      setGoalInput(data.todayGoal.toString())
+    }
+  }, [data.todayGoal])
+
+  const handleSaveGoal = () => {
+    const val = parseFloat(goalInput.replace(',', '.'))
+    if (isNaN(val) || val < 0) {
+      toast.error('Informe um valor válido para a meta.')
+      return
+    }
+    goalMutation.mutate(val)
+  }
+
 
 
   return (
@@ -90,8 +122,17 @@ function DashboardPage() {
         <MetricCard title="DISTÂNCIA" value={`${metrics.totalDistance.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} km`} icon={MapPin} />
       </div>
 
-      <div className="flex flex-col gap-6 relative z-10 order-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10 order-4">
+        <GoalCard 
+          metrics={goalMetrics} 
+          inputValue={goalInput} 
+          onInputChange={setGoalInput} 
+          onSave={handleSaveGoal}
+          isLoading={goalMutation.isPending}
+        />
+        
         <ChartCard title="Evolução dos Ganhos" subtitle="Desempenho no período selecionado">
+
           {hasData ? (
             <div className="h-[280px] w-full pt-4">
               <ResponsiveContainer width="100%" height="100%">
@@ -148,7 +189,11 @@ function DashboardPage() {
           )}
         </ChartCard>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        </ChartCard>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10 order-5">
+
           <ChartCard title="Entregas por Período" subtitle="Volume de trabalho diário">
             {hasData ? (
               <div className="h-[280px] w-full pt-4">
@@ -261,7 +306,102 @@ function ChartCard({ title, subtitle, children }: { title: string; subtitle?: st
   )
 }
 
+function GoalCard({ 
+  metrics, 
+  inputValue, 
+  onInputChange, 
+  onSave,
+  isLoading
+}: { 
+  metrics: any; 
+  inputValue: string; 
+  onInputChange: (val: string) => void; 
+  onSave: () => void;
+  isLoading: boolean;
+}) {
+  return (
+    <Card className="bg-card border-border shadow-sm overflow-hidden rounded-[2.5rem] p-6 flex flex-col justify-between">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h3 className="text-lg font-bold text-foreground">Meta do Dia</h3>
+            <p className="text-[10px] text-muted-foreground font-light uppercase tracking-wider">Acompanhamento de progresso</p>
+          </div>
+          <Target className="w-5 h-5 text-primary/40" />
+        </div>
+
+        {metrics ? (
+          <div className="space-y-6">
+            <div className="flex justify-between items-end">
+              <div className="space-y-1">
+                <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">Ganhos</div>
+                <div className="text-2xl font-bold text-primary">{formatCurrency(metrics.earnings)}</div>
+              </div>
+              <div className="text-right space-y-1">
+                <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">Meta</div>
+                <div className="text-lg font-medium text-foreground/80">{formatCurrency(metrics.goal)}</div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between text-[10px] font-bold uppercase tracking-tighter">
+                <span className={cn(metrics.isReached ? "text-emerald-500" : "text-primary")}>
+                  {metrics.isReached ? "Meta Atingida" : `${metrics.progress.toFixed(1)}%`}
+                </span>
+                <span className="text-muted-foreground/40">
+                  {metrics.remaining > 0 ? `Faltam ${formatCurrency(metrics.remaining)}` : "Objetivo Concluído"}
+                </span>
+              </div>
+              <Progress 
+                value={Math.min(100, metrics.progress)} 
+                className="h-2 bg-primary/10" 
+                // @ts-ignore - custom class for indicator in tailwind v4
+                indicatorClassName={cn(
+                  "transition-all duration-1000 ease-out",
+                  metrics.isReached ? "bg-emerald-500" : "bg-primary"
+                )}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="py-4">
+            <p className="text-xs text-muted-foreground italic">Meta diária não configurada.</p>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-8 pt-6 border-t border-border space-y-4">
+        <div className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">Configurar Meta</div>
+        <div className="flex gap-2">
+          <div className="relative flex-1 group">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/40 font-medium text-sm group-focus-within:text-primary transition-colors">R$</span>
+            <input 
+              type="text" 
+              value={inputValue}
+              onChange={(e) => onInputChange(e.target.value)}
+              placeholder="0,00"
+              className="w-full bg-muted/20 border border-border rounded-2xl py-3 pl-10 pr-4 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+            />
+          </div>
+          <button 
+            onClick={onSave}
+            disabled={isLoading}
+            className="bg-primary text-primary-foreground p-3 rounded-2xl hover:shadow-lg hover:shadow-primary/20 active:scale-95 transition-all disabled:opacity-50"
+          >
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+            ) : (
+              <Save className="w-5 h-5" />
+            )}
+          </button>
+        </div>
+      </div>
+    </Card>
+  )
+}
+
 function SmallMetric({ label, value }: { label: string; value: string }) {
+
   return (
     <div className="p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] bg-card border border-border shadow-sm space-y-1 md:space-y-2 hover:bg-muted/30 transition-all duration-300 group">
       <div className="text-[8px] md:text-[9px] font-bold text-muted-foreground/60 tracking-[0.2em] uppercase transition-colors">{label}</div>
