@@ -1,6 +1,8 @@
 import { supabaseAdmin } from './client.server';
 
 export const getDashboardData = async (startDate: string, endDate: string) => {
+  if (!startDate || !endDate) throw new Error("Dates required");
+
   // Fetch active day (today) for goal configuration
   const todayStr = new Date().toISOString().split('T')[0];
   const { data: todayDay } = await supabaseAdmin
