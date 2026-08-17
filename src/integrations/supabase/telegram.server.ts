@@ -522,7 +522,10 @@ export const handleTelegramUpdate = async (body: any) => {
 
     if (activeDay.notes === 'AWAITING:CLOSE_EARNINGS') {
       await (supabaseAdmin.from('work_days').update({ total_earned: num, notes: 'AWAITING:CLOSE_DELIVERIES' }).eq('id', activeDay.id) as any);
-      await send('Quantas entregas você fez hoje?', cancelMenu);
+      const updatedDay = await getActiveWorkDay();
+      const goalStr = updatedDay.daily_goal !== null ? 
+        ` (Meta: ${formatCurrency(updatedDay.daily_goal)})` : '';
+      await send(`Quantas entregas você fez hoje?${goalStr}`, cancelMenu);
       return;
     }
 
