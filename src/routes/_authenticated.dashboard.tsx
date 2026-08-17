@@ -12,7 +12,7 @@ import {
   Bar,
 } from 'recharts'
 import { motion } from 'framer-motion'
-import { TrendingUp, Clock, Package, MapPin, DollarSign, Calendar, Target, Save, CheckCircle2 } from 'lucide-react'
+import { TrendingUp, Clock, Package, MapPin, DollarSign, Calendar, Target, Save } from 'lucide-react'
 import { useState, useMemo, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -27,7 +27,6 @@ import {
 } from '@/lib/dashboard-utils'
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
-
 
 export const Route = createFileRoute('/_authenticated/dashboard')({
   component: DashboardPage,
@@ -75,8 +74,6 @@ function DashboardPage() {
     }
     goalMutation.mutate(val)
   }
-
-
 
   return (
     <motion.div 
@@ -132,7 +129,6 @@ function DashboardPage() {
         />
         
         <ChartCard title="Evolução dos Ganhos" subtitle="Desempenho no período selecionado">
-
           {hasData ? (
             <div className="h-[280px] w-full pt-4">
               <ResponsiveContainer width="100%" height="100%">
@@ -146,9 +142,7 @@ function DashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} opacity={0.2} />
                   <XAxis 
                     dataKey="label" 
-
                     stroke="var(--color-muted-foreground)" 
-
                     fontSize={10} 
                     axisLine={false} 
                     tickLine={false} 
@@ -157,7 +151,6 @@ function DashboardPage() {
                   />
                   <YAxis 
                     stroke="var(--color-muted-foreground)" 
-
                     fontSize={10} 
                     axisLine={false} 
                     tickLine={false} 
@@ -188,60 +181,56 @@ function DashboardPage() {
             <EmptyState icon={TrendingUp} text="Sem registros neste período" subtext="As estatísticas reais aparecerão após você finalizar sua primeira jornada no Telegram." />
           )}
         </ChartCard>
-
-        </ChartCard>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10 order-5">
+        <ChartCard title="Entregas por Período" subtitle="Volume de trabalho diário">
+          {hasData ? (
+            <div className="h-[280px] w-full pt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} opacity={0.2} />
+                  <XAxis dataKey="label" stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} dy={10} />
+                  <YAxis stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '1rem', fontSize: '10px' }}
+                    labelStyle={{ color: 'var(--color-muted-foreground)', marginBottom: '4px', fontWeight: 'bold' }}
+                    itemStyle={{ color: 'var(--color-foreground)', padding: 0 }}
+                    cursor={{ fill: 'var(--color-primary)', fillOpacity: 0.1 }}
+                    formatter={(value: any) => [value, 'Entregas']}
+                  />
+                  <Bar dataKey="deliveries" name="Entregas" fill="var(--color-primary)" radius={[4, 4, 0, 0]} barSize={32} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <EmptyState icon={Calendar} text="Aguardando registros" />
+          )}
+        </ChartCard>
 
-          <ChartCard title="Entregas por Período" subtitle="Volume de trabalho diário">
-            {hasData ? (
-              <div className="h-[280px] w-full pt-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} opacity={0.2} />
-                    <XAxis dataKey="label" stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} dy={10} />
-                    <YAxis stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '1rem', fontSize: '10px' }}
-                      labelStyle={{ color: 'var(--color-muted-foreground)', marginBottom: '4px', fontWeight: 'bold' }}
-                      itemStyle={{ color: 'var(--color-foreground)', padding: 0 }}
-                      cursor={{ fill: 'var(--color-primary)', fillOpacity: 0.1 }}
-                      formatter={(value: any) => [value, 'Entregas']}
-                    />
-                    <Bar dataKey="deliveries" name="Entregas" fill="var(--color-primary)" radius={[4, 4, 0, 0]} barSize={32} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <EmptyState icon={Calendar} text="Aguardando registros" />
-            )}
-          </ChartCard>
-
-          <ChartCard title="Tempo na Rua" subtitle="Horas dedicadas por dia">
-            {hasData ? (
-              <div className="h-[280px] w-full pt-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} opacity={0.2} />
-                    <XAxis dataKey="label" stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} dy={10} />
-                    <YAxis stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} tickFormatter={(value) => `${value}h`} />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '1rem', fontSize: '10px' }}
-                      labelStyle={{ color: 'var(--color-muted-foreground)', marginBottom: '4px', fontWeight: 'bold' }}
-                      itemStyle={{ color: 'var(--color-foreground)', padding: 0 }}
-                      cursor={{ fill: 'var(--color-primary)', fillOpacity: 0.1 }}
-                      formatter={(value: any) => [`${Number(value).toFixed(1)}h`, 'Tempo']}
-                    />
-                    <Bar dataKey="hours" name="Horas" fill="var(--color-primary)" opacity={0.8} radius={[4, 4, 0, 0]} barSize={32} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <EmptyState icon={Clock} text="Aguardando registros" />
-            )}
-          </ChartCard>
-        </div>
+        <ChartCard title="Tempo na Rua" subtitle="Horas dedicadas por dia">
+          {hasData ? (
+            <div className="h-[280px] w-full pt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} opacity={0.2} />
+                  <XAxis dataKey="label" stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} dy={10} />
+                  <YAxis stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} tickFormatter={(value) => `${value}h`} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '1rem', fontSize: '10px' }}
+                    labelStyle={{ color: 'var(--color-muted-foreground)', marginBottom: '4px', fontWeight: 'bold' }}
+                    itemStyle={{ color: 'var(--color-foreground)', padding: 0 }}
+                    cursor={{ fill: 'var(--color-primary)', fillOpacity: 0.1 }}
+                    formatter={(value: any) => [`${Number(value).toFixed(1)}h`, 'Tempo']}
+                  />
+                  <Bar dataKey="hours" name="Horas" fill="var(--color-primary)" opacity={0.8} radius={[4, 4, 0, 0]} barSize={32} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <EmptyState icon={Clock} text="Aguardando registros" />
+          )}
+        </ChartCard>
       </div>
 
       <div className="space-y-6 relative z-10 order-8">
@@ -256,8 +245,6 @@ function DashboardPage() {
           <SmallMetric label="ENTREGAS / HORA" value={metrics.deliveriesPerHour > 0 ? metrics.deliveriesPerHour.toFixed(1) : "—"} />
         </div>
       </div>
-
-
     </motion.div>
   )
 }
@@ -354,12 +341,7 @@ function GoalCard({
               </div>
               <Progress 
                 value={Math.min(100, metrics.progress)} 
-                className="h-2 bg-primary/10" 
-                // @ts-ignore - custom class for indicator in tailwind v4
-                indicatorClassName={cn(
-                  "transition-all duration-1000 ease-out",
-                  metrics.isReached ? "bg-emerald-500" : "bg-primary"
-                )}
+                className="h-2 bg-primary/10"
               />
             </div>
           </div>
@@ -401,7 +383,6 @@ function GoalCard({
 }
 
 function SmallMetric({ label, value }: { label: string; value: string }) {
-
   return (
     <div className="p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] bg-card border border-border shadow-sm space-y-1 md:space-y-2 hover:bg-muted/30 transition-all duration-300 group">
       <div className="text-[8px] md:text-[9px] font-bold text-muted-foreground/60 tracking-[0.2em] uppercase transition-colors">{label}</div>
@@ -427,4 +408,3 @@ function EmptyState({ icon: Icon, text, subtext }: { icon: any; text: string; su
     </div>
   )
 }
-
