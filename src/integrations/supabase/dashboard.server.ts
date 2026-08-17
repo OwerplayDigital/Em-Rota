@@ -8,7 +8,7 @@ export const getDashboardData = async (startDate: string, endDate: string) => {
   const { data: todayDay } = await supabaseAdmin
     .from('work_days')
     .select('daily_goal')
-    .eq('date', todayStr)
+    .eq('date', todayStr as any)
     .maybeSingle();
 
   // Fetch work days in range
@@ -46,7 +46,7 @@ export const updateDailyGoal = async (goal: number) => {
   const { data: existing } = await supabaseAdmin
     .from('work_days')
     .select('id')
-    .eq('date', todayStr)
+    .eq('date', todayStr as any)
     .maybeSingle();
 
   if (existing) {
