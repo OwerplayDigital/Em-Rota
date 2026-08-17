@@ -1,7 +1,7 @@
 import { supabaseAdmin } from './client.server';
 
 export const getDashboardData = async (startDate: string, endDate: string) => {
-  if (!startDate || !endDate) throw new Error("Dates required");
+  if (!startDate || !endDate) throw new Error("startDate and endDate are required");
 
   // Fetch active day (today) for goal configuration
   const todayStr = new Date().toISOString().split('T')[0];
@@ -12,7 +12,6 @@ export const getDashboardData = async (startDate: string, endDate: string) => {
     .maybeSingle();
 
   // Fetch work days in range
-
   const { data: workDays, error: wdError } = await supabaseAdmin
     .from('work_days')
     .select('*')
@@ -54,7 +53,7 @@ export const updateDailyGoal = async (goal: number) => {
     const { error } = await supabaseAdmin
       .from('work_days')
       .update({ daily_goal: goal })
-      .eq('id', existing.id);
+      .eq('id', (existing as any).id);
     if (error) throw error;
   } else {
     const { error } = await supabaseAdmin
@@ -63,7 +62,7 @@ export const updateDailyGoal = async (goal: number) => {
         date: todayStr, 
         daily_goal: goal,
         status: 'in_progress' 
-      });
+      } as any);
     if (error) throw error;
   }
   
