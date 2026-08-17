@@ -103,6 +103,12 @@ export const handleTelegramUpdate = async (body: any) => {
     const perKm = (distance && distance > 0 && day.total_earned !== null) ? (day.total_earned / distance) : null;
     const perDelivery = (day.total_deliveries && day.total_deliveries > 0 && day.total_earned !== null) ? (day.total_earned / day.total_deliveries) : null;
 
+    const goalStr = day.daily_goal !== null ? 
+      `\n<b>META DO DIA</b>\n` +
+      `${formatCurrency(day.total_earned)} / ${formatCurrency(day.daily_goal)}\n` +
+      `${((day.total_earned || 0) / day.daily_goal * 100).toFixed(1)}%${day.total_earned >= day.daily_goal ? ' - META ATINGIDA' : ''}\n` +
+      `${day.total_earned < day.daily_goal ? `Faltam: ${formatCurrency(day.daily_goal - day.total_earned)}` : 'Meta Atingida'}\n` : '';
+
     return `<b>RESUMO DE ${formatDateBR(day.date)}</b>\n\n` +
       `<b>Ganhos:</b>\n${formatCurrency(day.total_earned)}\n\n` +
       `<b>Entregas:</b>\n${day.total_deliveries ?? 'Ainda não informado'}\n\n` +
@@ -112,7 +118,8 @@ export const handleTelegramUpdate = async (body: any) => {
       `<b>MÉDIAS</b>\n\n` +
       `${formatCurrency(perHour)}/h\n` +
       `${formatCurrency(perKm)}/km\n` +
-      `${formatCurrency(perDelivery)}/entrega`;
+      `${formatCurrency(perDelivery)}/entrega\n` +
+      goalStr;
   };
 
   const mainMenu = {
@@ -249,7 +256,13 @@ export const handleTelegramUpdate = async (body: any) => {
 
     const distance = (day.odometer_end !== null && day.odometer_start !== null) ? (day.odometer_end - day.odometer_start) : null;
 
-    await send(`<b>JORNADA ENCERRADA</b>\n\nDuração desta jornada: ${formatDuration(thisSessionMs)}\n\n<b>TOTAL DE ${formatDateBR(day.date)}:</b>\nTempo na rua: ${formatDuration(totalMs)}\nGanhos: ${formatCurrency(day.total_earned)}\nEntregas: ${day.total_deliveries ?? 'Ainda não informado'}`, {
+    const goalStr = day.daily_goal !== null ? 
+      `\n\n<b>META DO DIA</b>\n` +
+      `${formatCurrency(day.total_earned)} / ${formatCurrency(day.daily_goal)}\n` +
+      `${((day.total_earned || 0) / day.daily_goal * 100).toFixed(1)}% atingido\n` +
+      `${day.total_earned < day.daily_goal ? `Faltam: ${formatCurrency(day.daily_goal - day.total_earned)}` : 'Meta Atingida'}` : '';
+
+    await send(`<b>JORNADA ENCERRADA</b>\n\nDuração desta jornada: ${formatDuration(thisSessionMs)}\n\n<b>TOTAL DE ${formatDateBR(day.date)}:</b>\nTempo na rua: ${formatDuration(totalMs)}\nGanhos: ${formatCurrency(day.total_earned)}\nEntregas: ${day.total_deliveries ?? 'Ainda não informado'}${goalStr}`, {
       keyboard: [[{ text: 'INICIAR JORNADA' }, { text: 'FECHAR DIA' }], [{ text: 'RESUMO' }, { text: 'LIMPAR CHAT' }], [{ text: 'MENU' }]],
       resize_keyboard: true
     });
