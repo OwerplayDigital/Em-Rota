@@ -95,6 +95,26 @@ export const calculateMetrics = (workDays: any[], sessions: any[]) => {
   };
 };
 
+export const calculateGoalMetrics = (workDays: any[], goal: number | null) => {
+  if (goal === null) return null;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayData = workDays.find(wd => wd.date === todayStr);
+  const earnings = todayData?.total_earned || 0;
+  
+  const progress = (earnings / goal) * 100;
+  const remaining = Math.max(0, goal - earnings);
+  const isReached = earnings >= goal;
+
+  return {
+    goal,
+    earnings,
+    progress,
+    remaining,
+    isReached
+  };
+};
+
 export const getChartData = (workDays: any[], sessions: any[]) => {
   // Group by date
   const dayMap = new Map();

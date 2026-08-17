@@ -1,10 +1,16 @@
 import { supabaseAdmin } from './client.server';
 
 export const getDashboardData = async (startDate: string, endDate: string) => {
-  // We use supabaseAdmin to bypass RLS for the user as this is a single-user system (TELEGRAM_ALLOWED_USER_ID)
-  // The client will call this via server function which is safe.
-  
+  // Fetch active day (today) for goal configuration
+  const todayStr = new Date().toISOString().split('T')[0];
+  const { data: todayDay } = await supabaseAdmin
+    .from('work_days')
+    .select('daily_goal')
+    .eq('date', todayStr)
+    .maybeSingle();
+
   // Fetch work days in range
+
   const { data: workDays, error: wdError } = await supabaseAdmin
     .from('work_days')
     .select('*')
@@ -29,5 +35,35 @@ export const getDashboardData = async (startDate: string, endDate: string) => {
     sessions = sessData || [];
   }
 
-  return { workDays, sessions };
+  return { workDays, sessions, todayGoal: todayDay?.daily_goal || null };
+};
+
+export const updateDailyGoal = async (goal: number) => {
+  const todayStr = new Date().toISOString().split('T')[0];
+  
+  // Check if day exists
+  const { data: existing } = await supabaseAdmin
+    .from('work_days')
+    .select('id')
+    .eq('date', todayStr)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabaseAdmin
+      .from('work_days')
+      .update({ daily_goal: goal })
+      .eq('id', existing.id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabaseAdmin
+      .from('work_days')
+      .insert({ 
+        date: todayStr, 
+        daily_goal: goal,
+        status: 'in_progress' 
+      });
+    if (error) throw error;
+  }
+  
+  return { success: true };
 };
