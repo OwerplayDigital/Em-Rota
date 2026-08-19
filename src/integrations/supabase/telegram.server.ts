@@ -223,7 +223,22 @@ export const handleTelegramUpdate = async (body: any) => {
     }
     
     if (!activeDay || activeDay.odometer_start === null) {
-      await send('Qual é o odômetro inicial da bike?', cancelMenu);
+      const { data: lastDay } = await (supabaseAdmin.from('work_days').select('odometer_end').not('odometer_end', 'is', null).order('date', { ascending: false }).limit(1).maybeSingle() as any);
+      
+      if (lastDay?.odometer_end) {
+        await send(`Qual é o odômetro inicial?\n\nO último registrado foi: <b>${formatNumberBR(lastDay.odometer_end)} km</b>`, {
+          keyboard: [[{ text: `USAR ${formatNumberBR(lastDay.odometer_end)}` }], [{ text: 'OUTRO VALOR' }], [{ text: 'CANCELAR' }]],
+          resize_keyboard: true
+        });
+        if (activeDay) {
+          await (supabaseAdmin.from('work_days').update({ notes: `AWAITING:ODO_START_CONFIRM:${lastDay.odometer_end}` }).eq('id', activeDay.id) as any);
+        } else {
+          // If no day exists yet, we'll handle it in the numeric flow or create it now with a note
+          const res = await (supabaseAdmin.from('work_days').insert({ date: today as any, status: 'in_progress' as any, notes: `AWAITING:ODO_START_CONFIRM:${lastDay.odometer_end}` }).select().single() as any);
+        }
+      } else {
+        await send('Qual é o odômetro inicial da bike?', cancelMenu);
+      }
       return;
     }
 
@@ -371,6 +386,41 @@ export const handleTelegramUpdate = async (body: any) => {
   const rawVal = textInput.replace('R$', '').replace(/\s/g, '').replace(',', '.').trim();
   const num = parseFloat(rawVal);
 
+  if (activeDay?.notes?.startsWith('AWAITING:ODO_START_CONFIRM:')) {
+    const lastOdo = parseFloat(activeDay.notes.split(':')[2]);
+    let odoToUse = null;
+
+    if (textInput.startsWith('USAR ')) {
+      odoToUse = lastOdo;
+    } else if (textInput === 'OUTRO VALOR') {
+      await (supabaseAdmin.from('work_days').update({ notes: 'AWAITING:ODO_START_MANUAL' }).eq('id', activeDay.id) as any);
+      await send('Informe o odômetro inicial atual:', cancelMenu);
+      return;
+    } else if (!isNaN(num)) {
+      odoToUse = num;
+    }
+
+    if (odoToUse !== null) {
+      await (supabaseAdmin.from('work_days').update({ odometer_start: odoToUse, notes: null }).eq('id', activeDay.id) as any);
+      await (supabaseAdmin.from('sessions').insert({ work_day_id: activeDay.id, status: 'active' as any }) as any);
+      await send(`Jornada iniciada com odômetro <b>${formatNumberBR(odoToUse)} km</b>!`, {
+        keyboard: [[{ text: 'ENCERRAR JORNADA' }, { text: 'RESUMO' }], [{ text: 'LIMPAR CHAT' }]],
+        resize_keyboard: true
+      });
+      return;
+    }
+  }
+
+  if (activeDay?.notes === 'AWAITING:ODO_START_MANUAL' && !isNaN(num)) {
+    await (supabaseAdmin.from('work_days').update({ odometer_start: num, notes: null }).eq('id', activeDay.id) as any);
+    await (supabaseAdmin.from('sessions').insert({ work_day_id: activeDay.id, status: 'active' as any }) as any);
+    await send(`Jornada iniciada com odômetro <b>${formatNumberBR(num)} km</b>!`, {
+      keyboard: [[{ text: 'ENCERRAR JORNADA' }, { text: 'RESUMO' }], [{ text: 'LIMPAR CHAT' }]],
+      resize_keyboard: true
+    });
+    return;
+  }
+
   if (activeDay?.notes?.startsWith('CORRECT:SELECT_SESSION:')) {
     const mode = activeDay.notes.split(':')[2]; // START_TIME or END_TIME
     const sessionMatch = textInput.match(/JORNADA (\d+)/);
@@ -494,12 +544,16 @@ export const handleTelegramUpdate = async (body: any) => {
 
     // 2. Normal Flow
     if (!activeDay || activeDay.odometer_start === null) {
+      if (isNaN(num)) {
+        await send('⚠️ Valor inválido. Informe o odômetro inicial:', cancelMenu);
+        return;
+      }
       let day = activeDay;
       if (!day) {
         const res = await (supabaseAdmin.from('work_days').insert({ date: today as any, odometer_start: num, status: 'in_progress' as any }).select().single() as any);
         day = res.data;
       } else {
-        await (supabaseAdmin.from('work_days').update({ odometer_start: num }).eq('id', day.id) as any);
+        await (supabaseAdmin.from('work_days').update({ odometer_start: num, notes: null }).eq('id', day.id) as any);
       }
       if (!day) return;
       await (supabaseAdmin.from('sessions').insert({ work_day_id: day.id, status: 'active' as any }) as any);
