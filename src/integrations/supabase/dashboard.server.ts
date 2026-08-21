@@ -3,13 +3,16 @@ import { supabaseAdmin } from './client.server';
 export const getDashboardData = async (startDate: string, endDate: string) => {
   if (!startDate || !endDate) throw new Error("startDate and endDate are required");
 
-  // Fetch active day (today) for goal configuration
-  const todayStr = new Date().toISOString().split('T')[0];
-  const { data: todayDay } = await supabaseAdmin
+  // Fetch most recent goal to maintain it until updated
+  const { data: lastGoalRecord } = await supabaseAdmin
     .from('work_days')
     .select('daily_goal')
-    .eq('date', todayStr as any)
+    .not('daily_goal', 'is', null)
+    .order('date', { ascending: false })
+    .limit(1)
     .maybeSingle();
+
+  const todayGoal = lastGoalRecord?.daily_goal || null;
 
   // Fetch work days in range
   const { data: workDays, error: wdError } = await supabaseAdmin
@@ -36,13 +39,13 @@ export const getDashboardData = async (startDate: string, endDate: string) => {
     sessions = sessData || [];
   }
 
-  return { workDays, sessions, todayGoal: todayDay?.daily_goal || null };
+  return { workDays, sessions, todayGoal };
 };
 
 export const updateDailyGoal = async (goal: number) => {
   const todayStr = new Date().toISOString().split('T')[0];
   
-  // Check if day exists
+  // Update or insert for today
   const { data: existing } = await supabaseAdmin
     .from('work_days')
     .select('id')
