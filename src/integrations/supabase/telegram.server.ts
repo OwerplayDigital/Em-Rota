@@ -77,8 +77,25 @@ export const handleTelegramUpdate = async (body: any) => {
   };
 
   const getActiveWorkDay = async (): Promise<any> => {
-    const res = await (supabaseAdmin.from('work_days').select('*').eq('date', today as any).maybeSingle() as any);
-    return res.data;
+    const { data: day } = await (supabaseAdmin.from('work_days').select('*').eq('date', today as any).maybeSingle() as any);
+    
+    // If day exists but has no goal, try to fetch the most recent goal
+    if (day && day.daily_goal === null) {
+      const { data: lastGoalRecord } = await (supabaseAdmin
+        .from('work_days')
+        .select('daily_goal')
+        .not('daily_goal', 'is', null)
+        .lt('date', today as any)
+        .order('date', { ascending: false })
+        .limit(1)
+        .maybeSingle() as any);
+      
+      if (lastGoalRecord?.daily_goal) {
+        day.daily_goal = lastGoalRecord.daily_goal;
+      }
+    }
+    
+    return day;
   };
 
   const getActiveSession = async (): Promise<any> => {

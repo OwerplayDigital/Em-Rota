@@ -35,7 +35,7 @@ export const Route = createFileRoute('/_authenticated/dashboard')({
 const periods = ['Hoje', '7 dias', 'Este mês', 'Este ano']
 
 function DashboardPage() {
-  const [activePeriod, setActivePeriod] = useState('7 dias')
+  const [activePeriod, setActivePeriod] = useState('Hoje')
   const { startDate, endDate } = useMemo(() => getDatesForPeriod(activePeriod), [activePeriod])
   
   const queryClient = useQueryClient();
