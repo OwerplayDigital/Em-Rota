@@ -308,7 +308,8 @@ function GoalCard({
   isLoading: boolean;
 }) {
   return (
-    <Card className="bg-card border-border shadow-sm overflow-hidden rounded-[2.5rem] p-6 flex flex-col justify-between">
+    <Card className="bg-card border-border shadow-sm overflow-hidden rounded-[2.5rem] p-6 flex flex-col justify-between relative">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -z-10 -translate-y-1/2 translate-x-1/2" />
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
@@ -344,6 +345,27 @@ function GoalCard({
                 value={Math.min(100, metrics.progress)} 
                 className="h-2 bg-primary/10"
               />
+            </div>
+            <div className="space-y-3 pt-2 border-t border-border/50">
+              <div className="flex justify-between items-center text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest">
+                <span>Divisão por Plataforma</span>
+              </div>
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[8px] font-bold uppercase">
+                    <span className="text-[#00c5ff]">Uber</span>
+                    <span className="text-foreground/60">{formatCurrency(metrics.totalUber)}</span>
+                  </div>
+                  <Progress value={metrics.totalEarned > 0 ? (metrics.totalUber / metrics.totalEarned) * 100 : 0} className="h-1 bg-muted" indicatorClassName="bg-[#00c5ff]" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[8px] font-bold uppercase">
+                    <span className="text-[#ea1d2c]">iFood</span>
+                    <span className="text-foreground/60">{formatCurrency(metrics.totalIfood)}</span>
+                  </div>
+                  <Progress value={metrics.totalEarned > 0 ? (metrics.totalIfood / metrics.totalEarned) * 100 : 0} className="h-1 bg-muted" indicatorClassName="bg-[#ea1d2c]" />
+                </div>
+              </div>
             </div>
           </div>
         ) : (
