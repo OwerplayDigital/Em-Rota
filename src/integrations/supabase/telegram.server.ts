@@ -162,9 +162,9 @@ export const handleTelegramUpdate = async (body: any) => {
     keyboard: [
       [{ text: 'HORÁRIO DE INÍCIO' }, { text: 'HORÁRIO DE ENCERRAMENTO' }],
       [{ text: 'ODÔMETRO INICIAL' }, { text: 'ODÔMETRO FINAL' }],
-      [{ text: 'GANHOS' }, { text: 'ENTREGAS' }],
-      [{ text: 'ADICIONAR JORNADA' }, { text: 'REABRIR DIA' }],
-      [{ text: 'VOLTAR' }]
+      [{ text: 'GANHOS UBER' }, { text: 'GANHOS IFOOD' }],
+      [{ text: 'ENTREGAS' }, { text: 'ADICIONAR JORNADA' }],
+      [{ text: 'REABRIR DIA' }, { text: 'VOLTAR' }]
     ],
     resize_keyboard: true
   };
@@ -333,9 +333,15 @@ export const handleTelegramUpdate = async (body: any) => {
     return;
   }
 
-  if (textInput === 'GANHOS') {
-    await (supabaseAdmin.from('work_days').update({ notes: 'CORRECT:EARNED_PLATFORM' }).eq('id', activeDay.id) as any);
-    await send('De qual plataforma é o ganho?', platformMenu);
+  if (textInput === 'GANHOS UBER') {
+    await (supabaseAdmin.from('work_days').update({ notes: 'CORRECT:EARNED_VALUE:UBER' }).eq('id', activeDay.id) as any);
+    await send('Qual é o valor correto dos ganhos na Uber?', cancelMenu);
+    return;
+  }
+
+  if (textInput === 'GANHOS IFOOD') {
+    await (supabaseAdmin.from('work_days').update({ notes: 'CORRECT:EARNED_VALUE:IFOOD' }).eq('id', activeDay.id) as any);
+    await send('Qual é o valor correto dos ganhos no iFood?', cancelMenu);
     return;
   }
 
