@@ -113,7 +113,7 @@ function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 relative z-10 order-3">
-        <MetricCard title="GANHOS" value={formatCurrency(metrics.totalEarned)} icon={DollarSign} isHighlight />
+        <MetricCard title="GANHOS" value={formatCurrency(metrics.totalEarned)} icon={DollarSign} isHighlight subtext={`Uber: ${formatCurrency(metrics.totalUber)} | iFood: ${formatCurrency(metrics.totalIfood)}`} />
         <MetricCard title="ENTREGAS" value={metrics.totalDeliveries.toString()} icon={Package} />
         <MetricCard title="TEMPO NA RUA" value={formatDuration(metrics.totalMs)} icon={Clock} />
         <MetricCard title="DISTÂNCIA" value={`${metrics.totalDistance.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} km`} icon={MapPin} />
@@ -249,7 +249,7 @@ function DashboardPage() {
   )
 }
 
-function MetricCard({ title, value, icon: Icon, isHighlight }: { title: string; value: string; icon: any; isHighlight?: boolean }) {
+function MetricCard({ title, value, icon: Icon, isHighlight, subtext }: { title: string; value: string; icon: any; isHighlight?: boolean; subtext?: string }) {
   return (
     <Card className={cn(
       "border-border/60 shadow-sm rounded-3xl overflow-hidden group transition-all duration-500",
@@ -271,6 +271,7 @@ function MetricCard({ title, value, icon: Icon, isHighlight }: { title: string; 
             "text-xl md:text-3xl font-bold tracking-tight transition-colors",
             isHighlight ? "text-primary" : "text-foreground"
           )}>{value}</div>
+          {subtext && <div className="text-[9px] text-muted-foreground/60 font-medium">{subtext}</div>}
         </div>
       </CardContent>
     </Card>

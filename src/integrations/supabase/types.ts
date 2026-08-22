@@ -58,12 +58,14 @@ export type Database = {
           daily_goal: number | null
           date: string
           id: string
+          ifood_earned: number | null
           notes: string | null
           odometer_end: number | null
           odometer_start: number | null
           status: Database["public"]["Enums"]["work_day_status"]
           total_deliveries: number | null
           total_earned: number | null
+          uber_earned: number | null
           updated_at: string | null
         }
         Insert: {
@@ -71,12 +73,14 @@ export type Database = {
           daily_goal?: number | null
           date: string
           id?: string
+          ifood_earned?: number | null
           notes?: string | null
           odometer_end?: number | null
           odometer_start?: number | null
           status?: Database["public"]["Enums"]["work_day_status"]
           total_deliveries?: number | null
           total_earned?: number | null
+          uber_earned?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -84,12 +88,14 @@ export type Database = {
           daily_goal?: number | null
           date?: string
           id?: string
+          ifood_earned?: number | null
           notes?: string | null
           odometer_end?: number | null
           odometer_start?: number | null
           status?: Database["public"]["Enums"]["work_day_status"]
           total_deliveries?: number | null
           total_earned?: number | null
+          uber_earned?: number | null
           updated_at?: string | null
         }
         Relationships: []

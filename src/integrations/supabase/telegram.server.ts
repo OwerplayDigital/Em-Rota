@@ -127,7 +127,7 @@ export const handleTelegramUpdate = async (body: any) => {
       `${day.total_earned < day.daily_goal ? `Faltam: ${formatCurrency(day.daily_goal - day.total_earned)}` : 'Meta Atingida'}\n` : '';
 
     return `<b>RESUMO DE ${formatDateBR(day.date)}</b>\n\n` +
-      `<b>Ganhos:</b>\n${formatCurrency(day.total_earned)}\n\n` +
+      `<b>Ganhos:</b>\n${formatCurrency(day.total_earned)} (Uber: ${formatCurrency(day.uber_earned)} | iFood: ${formatCurrency(day.ifood_earned)})\n\n` +
       `<b>Entregas:</b>\n${day.total_deliveries ?? 'Ainda não informado'}\n\n` +
       `<b>Distância:</b>\n${distance !== null ? `${formatNumberBR(distance)} km` : 'Ainda não informado'}\n\n` +
       `<b>Tempo na rua:</b>\n${formatDuration(totalMs)}\n\n` +
@@ -166,6 +166,11 @@ export const handleTelegramUpdate = async (body: any) => {
       [{ text: 'ADICIONAR JORNADA' }, { text: 'REABRIR DIA' }],
       [{ text: 'VOLTAR' }]
     ],
+    resize_keyboard: true
+  };
+
+  const platformMenu = {
+    keyboard: [[{ text: 'UBER' }, { text: 'IFOOD' }], [{ text: 'CANCELAR' }]],
     resize_keyboard: true
   };
 
@@ -329,8 +334,8 @@ export const handleTelegramUpdate = async (body: any) => {
   }
 
   if (textInput === 'GANHOS') {
-    await (supabaseAdmin.from('work_days').update({ notes: 'CORRECT:EARNED' }).eq('id', activeDay.id) as any);
-    await send('Qual é o valor correto dos ganhos de hoje?', cancelMenu);
+    await (supabaseAdmin.from('work_days').update({ notes: 'CORRECT:EARNED_PLATFORM' }).eq('id', activeDay.id) as any);
+    await send('De qual plataforma é o ganho?', platformMenu);
     return;
   }
 
