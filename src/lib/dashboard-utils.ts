@@ -64,6 +64,8 @@ export const formatCurrency = (value: number) => {
 
 export const calculateMetrics = (workDays: any[], sessions: any[]) => {
   const totalEarned = workDays.reduce((acc, wd) => acc + (wd.total_earned || 0), 0);
+  const totalUber = workDays.reduce((acc, wd) => acc + (wd.uber_earned || 0), 0);
+  const totalIfood = workDays.reduce((acc, wd) => acc + (wd.ifood_earned || 0), 0);
   const totalDeliveries = workDays.reduce((acc, wd) => acc + (wd.total_deliveries || 0), 0);
   
   const totalDistance = workDays.reduce((acc, wd) => {
@@ -84,6 +86,8 @@ export const calculateMetrics = (workDays: any[], sessions: any[]) => {
 
   return {
     totalEarned,
+    totalUber,
+    totalIfood,
     totalDeliveries,
     totalDistance,
     totalMs,

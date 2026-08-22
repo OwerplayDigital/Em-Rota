@@ -127,7 +127,7 @@ export const handleTelegramUpdate = async (body: any) => {
       `${day.total_earned < day.daily_goal ? `Faltam: ${formatCurrency(day.daily_goal - day.total_earned)}` : 'Meta Atingida'}\n` : '';
 
     return `<b>RESUMO DE ${formatDateBR(day.date)}</b>\n\n` +
-      `<b>Ganhos:</b>\n${formatCurrency(day.total_earned)}\n\n` +
+      `<b>Ganhos:</b>\n${formatCurrency(day.total_earned)} (Uber: ${formatCurrency(day.uber_earned)} | iFood: ${formatCurrency(day.ifood_earned)})\n\n` +
       `<b>Entregas:</b>\n${day.total_deliveries ?? 'Ainda não informado'}\n\n` +
       `<b>Distância:</b>\n${distance !== null ? `${formatNumberBR(distance)} km` : 'Ainda não informado'}\n\n` +
       `<b>Tempo na rua:</b>\n${formatDuration(totalMs)}\n\n` +
@@ -162,10 +162,15 @@ export const handleTelegramUpdate = async (body: any) => {
     keyboard: [
       [{ text: 'HORÁRIO DE INÍCIO' }, { text: 'HORÁRIO DE ENCERRAMENTO' }],
       [{ text: 'ODÔMETRO INICIAL' }, { text: 'ODÔMETRO FINAL' }],
-      [{ text: 'GANHOS' }, { text: 'ENTREGAS' }],
-      [{ text: 'ADICIONAR JORNADA' }, { text: 'REABRIR DIA' }],
-      [{ text: 'VOLTAR' }]
+      [{ text: 'GANHOS UBER' }, { text: 'GANHOS IFOOD' }],
+      [{ text: 'ENTREGAS' }, { text: 'ADICIONAR JORNADA' }],
+      [{ text: 'REABRIR DIA' }, { text: 'VOLTAR' }]
     ],
+    resize_keyboard: true
+  };
+
+  const platformMenu = {
+    keyboard: [[{ text: 'UBER' }, { text: 'IFOOD' }], [{ text: 'CANCELAR' }]],
     resize_keyboard: true
   };
 
@@ -328,9 +333,15 @@ export const handleTelegramUpdate = async (body: any) => {
     return;
   }
 
-  if (textInput === 'GANHOS') {
-    await (supabaseAdmin.from('work_days').update({ notes: 'CORRECT:EARNED' }).eq('id', activeDay.id) as any);
-    await send('Qual é o valor correto dos ganhos de hoje?', cancelMenu);
+  if (textInput === 'GANHOS UBER') {
+    await (supabaseAdmin.from('work_days').update({ notes: 'CORRECT:EARNED_VALUE:UBER' }).eq('id', activeDay.id) as any);
+    await send('Qual é o valor correto dos ganhos na Uber?', cancelMenu);
+    return;
+  }
+
+  if (textInput === 'GANHOS IFOOD') {
+    await (supabaseAdmin.from('work_days').update({ notes: 'CORRECT:EARNED_VALUE:IFOOD' }).eq('id', activeDay.id) as any);
+    await send('Qual é o valor correto dos ganhos no iFood?', cancelMenu);
     return;
   }
 
@@ -530,8 +541,30 @@ export const handleTelegramUpdate = async (body: any) => {
         }
         await (supabaseAdmin.from('sessions').update({ end_time: newDate.toISOString() }).eq('id', sessionId) as any);
       }
+    } else if (textInput === 'UBER' || textInput === 'IFOOD') {
+      const platform = textInput;
+      if (mode === 'EARNED_PLATFORM') {
+        await (supabaseAdmin.from('work_days').update({ notes: `CORRECT:EARNED_VALUE:${platform}` }).eq('id', activeDay.id) as any);
+        await send(`Qual o valor dos ganhos no ${platform}?`, cancelMenu);
+        return;
+      }
     } else if (!isNaN(num)) {
-      if (mode === 'EARNED') {
+      if (mode === 'EARNED_VALUE') {
+        const platform = parts[2];
+        const isUber = platform === 'UBER';
+        
+        // Get current values
+        const currentUber = Number(activeDay.uber_earned) || 0;
+        const currentIfood = Number(activeDay.ifood_earned) || 0;
+        
+        const newUber = isUber ? num : currentUber;
+        const newIfood = !isUber ? num : currentIfood;
+        
+        update.uber_earned = newUber;
+        update.ifood_earned = newIfood;
+        update.total_earned = newUber + newIfood;
+      } else if (mode === 'EARNED') {
+        // Fallback for old mode if it somehow triggers
         update.total_earned = num;
       } else if (mode === 'DELIVERIES') {
         update.total_deliveries = Math.round(num);
@@ -586,13 +619,38 @@ export const handleTelegramUpdate = async (body: any) => {
         await send(`⚠️ O odômetro final não pode ser menor que o inicial (${formatNumberBR(activeDay.odometer_start)}). Informe novamente:`, cancelMenu);
         return;
       }
-      await (supabaseAdmin.from('work_days').update({ odometer_end: num, notes: 'AWAITING:CLOSE_EARNINGS' }).eq('id', activeDay.id) as any);
-      await send('Quanto você ganhou hoje?', cancelMenu);
+      await (supabaseAdmin.from('work_days').update({ odometer_end: num, notes: 'AWAITING:CLOSE_PLATFORM' }).eq('id', activeDay.id) as any);
+      await send('De qual plataforma é o ganho?', platformMenu);
       return;
     }
 
-    if (activeDay.notes === 'AWAITING:CLOSE_EARNINGS') {
-      await (supabaseAdmin.from('work_days').update({ total_earned: num, notes: 'AWAITING:CLOSE_DELIVERIES' }).eq('id', activeDay.id) as any);
+    if (activeDay.notes === 'AWAITING:CLOSE_PLATFORM') {
+      if (textInput === 'UBER' || textInput === 'IFOOD') {
+        await (supabaseAdmin.from('work_days').update({ notes: `AWAITING:CLOSE_EARNINGS:${textInput}` }).eq('id', activeDay.id) as any);
+        await send(`Quanto você ganhou no ${textInput}?`, cancelMenu);
+      } else {
+        await send('Por favor, selecione a plataforma:', platformMenu);
+      }
+      return;
+    }
+
+    if (activeDay.notes?.startsWith('AWAITING:CLOSE_EARNINGS')) {
+      const platform = activeDay.notes.split(':')[2];
+      const isUber = platform === 'UBER';
+      
+      const update: any = {
+        notes: 'AWAITING:CLOSE_DELIVERIES'
+      };
+      
+      if (isUber) {
+        update.uber_earned = num;
+        update.total_earned = num + (Number(activeDay.ifood_earned) || 0);
+      } else {
+        update.ifood_earned = num;
+        update.total_earned = num + (Number(activeDay.uber_earned) || 0);
+      }
+
+      await (supabaseAdmin.from('work_days').update(update).eq('id', activeDay.id) as any);
       const updatedDay = await getActiveWorkDay();
       const goalStr = updatedDay.daily_goal !== null ? 
         ` (Meta: ${formatCurrency(updatedDay.daily_goal)})` : '';

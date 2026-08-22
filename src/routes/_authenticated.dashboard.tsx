@@ -113,7 +113,7 @@ function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 relative z-10 order-3">
-        <MetricCard title="GANHOS" value={formatCurrency(metrics.totalEarned)} icon={DollarSign} isHighlight />
+        <MetricCard title="GANHOS" value={formatCurrency(metrics.totalEarned)} icon={DollarSign} isHighlight subtext={`Uber: ${formatCurrency(metrics.totalUber)} | iFood: ${formatCurrency(metrics.totalIfood)}`} />
         <MetricCard title="ENTREGAS" value={metrics.totalDeliveries.toString()} icon={Package} />
         <MetricCard title="TEMPO NA RUA" value={formatDuration(metrics.totalMs)} icon={Clock} />
         <MetricCard title="DISTÂNCIA" value={`${metrics.totalDistance.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} km`} icon={MapPin} />
@@ -249,7 +249,7 @@ function DashboardPage() {
   )
 }
 
-function MetricCard({ title, value, icon: Icon, isHighlight }: { title: string; value: string; icon: any; isHighlight?: boolean }) {
+function MetricCard({ title, value, icon: Icon, isHighlight, subtext }: { title: string; value: string; icon: any; isHighlight?: boolean; subtext?: string }) {
   return (
     <Card className={cn(
       "border-border/60 shadow-sm rounded-3xl overflow-hidden group transition-all duration-500",
@@ -271,6 +271,7 @@ function MetricCard({ title, value, icon: Icon, isHighlight }: { title: string; 
             "text-xl md:text-3xl font-bold tracking-tight transition-colors",
             isHighlight ? "text-primary" : "text-foreground"
           )}>{value}</div>
+          {subtext && <div className="text-[9px] text-muted-foreground/60 font-medium">{subtext}</div>}
         </div>
       </CardContent>
     </Card>
@@ -307,7 +308,8 @@ function GoalCard({
   isLoading: boolean;
 }) {
   return (
-    <Card className="bg-card border-border shadow-sm overflow-hidden rounded-[2.5rem] p-6 flex flex-col justify-between">
+    <Card className="bg-card border-border shadow-sm overflow-hidden rounded-[2.5rem] p-6 flex flex-col justify-between relative">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -z-10 -translate-y-1/2 translate-x-1/2" />
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
@@ -343,6 +345,27 @@ function GoalCard({
                 value={Math.min(100, metrics.progress)} 
                 className="h-2 bg-primary/10"
               />
+            </div>
+            <div className="space-y-3 pt-2 border-t border-border/50">
+              <div className="flex justify-between items-center text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest">
+                <span>Divisão por Plataforma</span>
+              </div>
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[8px] font-bold uppercase">
+                    <span className="text-[#00c5ff]">Uber</span>
+                    <span className="text-foreground/60">{formatCurrency(metrics.totalUber)}</span>
+                  </div>
+                  <Progress value={metrics.totalEarned > 0 ? (metrics.totalUber / metrics.totalEarned) * 100 : 0} className="h-1 bg-muted" indicatorClassName="bg-[#00c5ff]" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[8px] font-bold uppercase">
+                    <span className="text-[#ea1d2c]">iFood</span>
+                    <span className="text-foreground/60">{formatCurrency(metrics.totalIfood)}</span>
+                  </div>
+                  <Progress value={metrics.totalEarned > 0 ? (metrics.totalIfood / metrics.totalEarned) * 100 : 0} className="h-1 bg-muted" indicatorClassName="bg-[#ea1d2c]" />
+                </div>
+              </div>
             </div>
           </div>
         ) : (
