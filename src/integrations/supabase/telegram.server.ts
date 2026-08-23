@@ -317,7 +317,7 @@ export const handleTelegramUpdate = async (body: any) => {
       return;
     }
     await (supabaseAdmin.from('work_days').update({ notes: 'AWAITING:CLOSE_ODO' }).eq('id', activeDay.id) as any);
-    await send('Qual é o odômetro final da bike?', cancelMenu);
+    await send('Odômetro final:', cancelMenu);
     return;
   }
 
@@ -618,7 +618,7 @@ export const handleTelegramUpdate = async (body: any) => {
         return;
       }
       await (supabaseAdmin.from('work_days').update({ odometer_end: num, notes: 'AWAITING:CLOSE_UBER' }).eq('id', activeDay.id) as any);
-      await send('Qual foi o valor ganho na <b>Uber</b>? (Digite o valor ou 0)', cancelMenu);
+      await send('Uber:', cancelMenu);
       return;
     }
 
@@ -628,7 +628,7 @@ export const handleTelegramUpdate = async (body: any) => {
         return;
       }
       await (supabaseAdmin.from('work_days').update({ uber_earned: num, notes: 'AWAITING:CLOSE_IFOOD' }).eq('id', activeDay.id) as any);
-      await send('Qual foi o valor ganho no <b>iFood</b>? (Digite o valor ou 0)', cancelMenu);
+      await send('iFood:', cancelMenu);
       return;
     }
 
@@ -660,8 +660,8 @@ export const handleTelegramUpdate = async (body: any) => {
         status: 'completed' as any,
         notes: null 
       }).eq('id', activeDay.id).select().single() as any);
-      const summary = await getSummary(res.data);
-      await send(`<b>DIA ${formatDateBR(res.data.date)} FECHADO</b>\n\n${summary}`, {
+      const summary = `Jornada encerrada! Uber: ${formatCurrency(res.data.uber_earned)} | iFood: ${formatCurrency(res.data.ifood_earned)} | Total: ${formatCurrency(res.data.total_earned)}`;
+      await send(summary, {
         keyboard: [[{ text: 'CORRIGIR DIA' }, { text: 'LIMPAR CHAT' }, { text: 'RESUMO' }], [{ text: 'MENU' }]],
         resize_keyboard: true
       });
