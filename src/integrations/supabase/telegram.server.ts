@@ -660,8 +660,8 @@ export const handleTelegramUpdate = async (body: any) => {
         status: 'completed' as any,
         notes: null 
       }).eq('id', activeDay.id).select().single() as any);
-      const summary = await getSummary(res.data);
-      await send(`<b>DIA ${formatDateBR(res.data.date)} FECHADO</b>\n\n${summary}`, {
+      const summary = `Jornada encerrada! Uber: ${formatCurrency(res.data.uber_earned)} | iFood: ${formatCurrency(res.data.ifood_earned)} | Total: ${formatCurrency(res.data.total_earned)}`;
+      await send(summary, {
         keyboard: [[{ text: 'CORRIGIR DIA' }, { text: 'LIMPAR CHAT' }, { text: 'RESUMO' }], [{ text: 'MENU' }]],
         resize_keyboard: true
       });
