@@ -317,7 +317,7 @@ export const handleTelegramUpdate = async (body: any) => {
       return;
     }
     await (supabaseAdmin.from('work_days').update({ notes: 'AWAITING:CLOSE_ODO' }).eq('id', activeDay.id) as any);
-    await send('Qual é o odômetro final da bike?', cancelMenu);
+    await send('Odômetro final:', cancelMenu);
     return;
   }
 
