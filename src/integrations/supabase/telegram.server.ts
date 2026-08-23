@@ -618,7 +618,7 @@ export const handleTelegramUpdate = async (body: any) => {
         return;
       }
       await (supabaseAdmin.from('work_days').update({ odometer_end: num, notes: 'AWAITING:CLOSE_UBER' }).eq('id', activeDay.id) as any);
-      await send('Qual foi o valor ganho na <b>Uber</b>? (Digite o valor ou 0)', cancelMenu);
+      await send('Uber:', cancelMenu);
       return;
     }
 
