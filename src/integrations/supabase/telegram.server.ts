@@ -350,7 +350,7 @@ export const handleTelegramUpdate = async (body: any) => {
       `${day.total_earned < day.daily_goal ? `Faltam: ${formatCurrency(day.daily_goal - day.total_earned)}` : 'Meta Atingida'}` : '';
 
     await send(`<b>JORNADA ENCERRADA</b>\n\nDuração desta jornada: ${formatDuration(thisSessionMs)}\n\n<b>TOTAL DE ${formatDateBR(day.date)}:</b>\nTempo na rua: ${formatDuration(totalMs)}\nGanhos: ${formatCurrency(day.total_earned)}\nEntregas: ${day.total_deliveries ?? 'Ainda não informado'}${goalStr}`, {
-      keyboard: [[{ text: 'INICIAR JORNADA' }, { text: 'FECHAR DIA' }], [{ text: 'RESUMO' }, { text: 'LIMPAR CHAT' }], [{ text: 'MENU' }]],
+      keyboard: [[{ text: 'INICIAR JORNADA' }, { text: 'FECHAR DIA' }], [{ text: 'EXCLUIR JORNADA' }, { text: 'RESUMO' }], [{ text: 'LIMPAR CHAT' }], [{ text: 'MENU' }]],
       resize_keyboard: true
     });
     return;
