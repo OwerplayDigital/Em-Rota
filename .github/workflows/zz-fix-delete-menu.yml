@@ -1,0 +1,28 @@
+name: Expose completed journey deletion
+on: push
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch ended journey menu
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/integrations/supabase/telegram.server.ts')
+          s = p.read_text()
+          old = """      keyboard: [[{ text: 'INICIAR JORNADA' }, { text: 'FECHAR DIA' }], [{ text: 'RESUMO' }, { text: 'LIMPAR CHAT' }], [{ text: 'MENU' }]],"""
+          new = """      keyboard: [[{ text: 'INICIAR JORNADA' }, { text: 'FECHAR DIA' }], [{ text: 'EXCLUIR JORNADA' }, { text: 'RESUMO' }], [{ text: 'LIMPAR CHAT' }], [{ text: 'MENU' }]],"""
+          assert old in s, 'ended journey menu target not found'
+          p.write_text(s.replace(old, new, 1))
+          PY
+      - name: Commit and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/integrations/supabase/telegram.server.ts
+          git rm .github/workflows/zz-fix-delete-menu.yml
+          git commit -m "fix: expose completed journey deletion after ending"
+          git push
