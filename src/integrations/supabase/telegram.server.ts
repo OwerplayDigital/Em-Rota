@@ -164,7 +164,8 @@ export const handleTelegramUpdate = async (body: any) => {
       [{ text: 'ODÔMETRO INICIAL' }, { text: 'ODÔMETRO FINAL' }],
       [{ text: 'GANHOS UBER' }, { text: 'GANHOS IFOOD' }],
       [{ text: 'ENTREGAS' }, { text: 'ADICIONAR JORNADA' }],
-      [{ text: 'REABRIR DIA' }, { text: 'VOLTAR' }]
+      [{ text: 'EXCLUIR JORNADA' }, { text: 'REABRIR DIA' }],
+      [{ text: 'VOLTAR' }]
     ],
     resize_keyboard: true
   };
@@ -187,7 +188,7 @@ export const handleTelegramUpdate = async (body: any) => {
 
   if (textInput === 'CANCELAR' || textInput === 'VOLTAR') {
     // Reset correction state if any
-    if (activeDay?.notes?.includes('CORRECT:') || activeDay?.notes?.includes('AWAITING:') || activeDay?.notes?.includes('ADDSESSION:')) {
+    if (activeDay?.notes?.includes('CORRECT:') || activeDay?.notes?.includes('AWAITING:') || activeDay?.notes?.includes('ADDSESSION:') || activeDay?.notes?.includes('DELETE_SESSION:')) {
       await (supabaseAdmin.from('work_days').update({ notes: null }).eq('id', activeDay.id) as any);
     }
     await send('Operação cancelada.', mainMenu);
@@ -199,7 +200,7 @@ export const handleTelegramUpdate = async (body: any) => {
       await send('Nenhum dado para hoje.', mainMenu);
     } else {
       const summary = await getSummary(activeDay);
-      await send(summary, activeDay.status === 'completed' ? { keyboard: [[{ text: 'CORRIGIR DIA' }, { text: 'LIMPAR CHAT' }], [{ text: 'MENU' }]], resize_keyboard: true } : mainMenu);
+      await send(summary, activeDay.status === 'completed' ? { keyboard: [[{ text: 'CORRIGIR DIA' }, { text: 'EXCLUIR JORNADA' }], [{ text: 'LIMPAR CHAT' }], [{ text: 'MENU' }]], resize_keyboard: true } : mainMenu);
     }
     return;
   }
@@ -349,7 +350,7 @@ export const handleTelegramUpdate = async (body: any) => {
       `${day.total_earned < day.daily_goal ? `Faltam: ${formatCurrency(day.daily_goal - day.total_earned)}` : 'Meta Atingida'}` : '';
 
     await send(`<b>JORNADA ENCERRADA</b>\n\nDuração desta jornada: ${formatDuration(thisSessionMs)}\n\n<b>TOTAL DE ${formatDateBR(day.date)}:</b>\nTempo na rua: ${formatDuration(totalMs)}\nGanhos: ${formatCurrency(day.total_earned)}\nEntregas: ${day.total_deliveries ?? 'Ainda não informado'}${goalStr}`, {
-      keyboard: [[{ text: 'INICIAR JORNADA' }, { text: 'FECHAR DIA' }], [{ text: 'RESUMO' }, { text: 'LIMPAR CHAT' }], [{ text: 'MENU' }]],
+      keyboard: [[{ text: 'INICIAR JORNADA' }, { text: 'FECHAR DIA' }], [{ text: 'EXCLUIR JORNADA' }, { text: 'RESUMO' }], [{ text: 'LIMPAR CHAT' }], [{ text: 'MENU' }]],
       resize_keyboard: true
     });
     return;
@@ -409,6 +410,102 @@ export const handleTelegramUpdate = async (body: any) => {
   if (textInput === 'ODÔMETRO FINAL') {
     await (supabaseAdmin.from('work_days').update({ notes: 'CORRECT:ODO_END' }).eq('id', activeDay.id) as any);
     await send('Qual é o odômetro final correto?', cancelMenu);
+    return;
+  }
+
+  if (textInput === 'EXCLUIR JORNADA') {
+    if (!activeDay) {
+      await send('Nenhum dia encontrado para excluir uma jornada.', mainMenu);
+      return;
+    }
+
+    const { data: sessions, error } = await (supabaseAdmin
+      .from('sessions')
+      .select('*')
+      .eq('work_day_id', activeDay.id)
+      .eq('status', 'completed' as any)
+      .order('start_time', { ascending: true }) as any);
+
+    if (error) {
+      console.error('Failed to load sessions for deletion:', error);
+      await send('Não foi possível carregar as jornadas. Tente novamente.', mainMenu);
+      return;
+    }
+
+    if (!sessions || sessions.length === 0) {
+      await send('Não há jornadas encerradas para excluir neste dia.', correctionMenu);
+      return;
+    }
+
+    if (sessions.length === 1) {
+      const session = sessions[0];
+      const duration = session.start_time && session.end_time ? formatDuration(new Date(session.end_time).getTime() - new Date(session.start_time).getTime()) : '—';
+      await (supabaseAdmin.from('work_days').update({ notes: `DELETE_SESSION:${session.id}` }).eq('id', activeDay.id) as any);
+      await send(
+        `<b>EXCLUIR JORNADA?</b>\n\nInício: ${formatDateTimeBR(session.start_time)}\nFim: ${session.end_time ? formatDateTimeBR(session.end_time) : '—'}\nDuração: ${duration}\n\nEsta jornada será removida e deixará de ser contabilizada.\n\n<b>Deseja realmente excluir?</b>`,
+        { keyboard: [[{ text: 'SIM, EXCLUIR JORNADA' }], [{ text: 'NÃO, EXCLUIR' }]], resize_keyboard: true }
+      );
+      return;
+    }
+
+    const sessionButtons = sessions.map((session, index) => [{ text: `JORNADA ${index + 1} — ${formatTimeBR(session.start_time)}` }]);
+    await (supabaseAdmin.from('work_days').update({ notes: 'DELETE_SESSION:SELECT' }).eq('id', activeDay.id) as any);
+    await send('Qual jornada você deseja excluir?', { keyboard: [...sessionButtons, [{ text: 'VOLTAR' }]], resize_keyboard: true });
+    return;
+  }
+
+  if (activeDay?.notes?.startsWith('DELETE_SESSION:') && textInput.startsWith('JORNADA ')) {
+    const { data: sessions } = await (supabaseAdmin.from('sessions').select('*').eq('work_day_id', activeDay.id).eq('status', 'completed' as any).order('start_time', { ascending: true }) as any);
+    const match = textInput.match(/^JORNADA (\d+)/);
+    const index = match ? parseInt(match[1], 10) - 1 : -1;
+    const session = sessions?.[index];
+    if (!session) {
+      await send('Selecione uma jornada válida.', correctionMenu);
+      return;
+    }
+    const duration = session.start_time && session.end_time ? formatDuration(new Date(session.end_time).getTime() - new Date(session.start_time).getTime()) : '—';
+    await (supabaseAdmin.from('work_days').update({ notes: `DELETE_SESSION:${session.id}` }).eq('id', activeDay.id) as any);
+    await send(
+      `<b>EXCLUIR JORNADA?</b>\n\nJornada ${index + 1}\nInício: ${formatDateTimeBR(session.start_time)}\nFim: ${session.end_time ? formatDateTimeBR(session.end_time) : '—'}\nDuração: ${duration}\n\nEsta jornada será removida e deixará de ser contabilizada.\n\n<b>Deseja realmente excluir?</b>`,
+      { keyboard: [[{ text: 'SIM, EXCLUIR JORNADA' }], [{ text: 'NÃO, EXCLUIR' }]], resize_keyboard: true }
+    );
+    return;
+  }
+
+  if (textInput === 'SIM, EXCLUIR JORNADA') {
+    if (!activeDay?.notes?.startsWith('DELETE_SESSION:')) {
+      await send('Nenhuma exclusão de jornada está pendente.', mainMenu);
+      return;
+    }
+    const sessionId = activeDay.notes.split(':')[1];
+    if (!sessionId || sessionId === 'SELECT') {
+      await send('Selecione a jornada que deseja excluir primeiro.', correctionMenu);
+      return;
+    }
+    const { data: session } = await (supabaseAdmin.from('sessions').select('*').eq('id', sessionId).eq('work_day_id', activeDay.id).eq('status', 'completed' as any).maybeSingle() as any);
+    if (!session) {
+      await (supabaseAdmin.from('work_days').update({ notes: null }).eq('id', activeDay.id) as any);
+      await send('A jornada selecionada não foi encontrada. Nenhuma alteração foi feita.', correctionMenu);
+      return;
+    }
+    const { error } = await (supabaseAdmin.from('sessions').delete().eq('id', sessionId).eq('work_day_id', activeDay.id) as any);
+    if (error) {
+      console.error('Failed to delete completed session:', error);
+      await send('Não foi possível excluir a jornada. Nenhum registro foi alterado.', correctionMenu);
+      return;
+    }
+    await (supabaseAdmin.from('work_days').update({ notes: null }).eq('id', activeDay.id) as any);
+    const updatedDay = await getActiveWorkDay();
+    await send('<b>JORNADA EXCLUÍDA</b>\n\nA jornada foi removida dos registros e não será contabilizada no tempo trabalhado.', { keyboard: [[{ text: 'EXCLUIR JORNADA' }, { text: 'CORRIGIR DIA' }], [{ text: 'RESUMO' }], [{ text: 'MENU' }]], resize_keyboard: true });
+    await send(await getSummary(updatedDay));
+    return;
+  }
+
+  if (textInput === 'NÃO, EXCLUIR') {
+    if (activeDay?.notes?.startsWith('DELETE_SESSION:')) {
+      await (supabaseAdmin.from('work_days').update({ notes: null }).eq('id', activeDay.id) as any);
+    }
+    await send('Operação cancelada. A jornada permanece registrada.', correctionMenu);
     return;
   }
 
