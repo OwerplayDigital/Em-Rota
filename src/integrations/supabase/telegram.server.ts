@@ -264,7 +264,58 @@ export const handleTelegramUpdate = async (body: any) => {
 
     await (supabaseAdmin.from('sessions').insert({ work_day_id: activeDay.id, status: 'active' as any }) as any);
     await send('Jornada iniciada!', {
-      keyboard: [[{ text: 'ENCERRAR JORNADA' }, { text: 'RESUMO' }], [{ text: 'LIMPAR CHAT' }]],
+      keyboard: [[{ text: 'ENCERRAR JORNADA' }, { text: 'CANCELAR JORNADA' }], [{ text: 'RESUMO' }], [{ text: 'LIMPAR CHAT' }]],
+      resize_keyboard: true
+    });
+    return;
+  }
+
+  if (textInput === 'CANCELAR JORNADA') {
+    if (!activeSession) {
+      await send('Não existe nenhuma jornada em andamento para cancelar.', mainMenu);
+      return;
+    }
+
+    await send(
+      `<b>CANCELAR JORNADA?</b>\n\n` +
+      `Esta ação vai excluir a jornada iniciada em ${formatDateTimeBR(activeSession.start_time)}.\n` +
+      `Ela não será contabilizada no tempo trabalhado nem aparecerá no resumo.\n\n` +
+      `<b>Deseja realmente cancelar?</b>`,
+      {
+        keyboard: [[{ text: 'SIM, CANCELAR JORNADA' }, { text: 'NÃO, VOLTAR' }]],
+        resize_keyboard: true
+      }
+    );
+    return;
+  }
+
+  if (textInput === 'SIM, CANCELAR JORNADA') {
+    if (!activeSession) {
+      await send('Não existe nenhuma jornada em andamento para cancelar.', mainMenu);
+      return;
+    }
+
+    const { error } = await (supabaseAdmin
+      .from('sessions')
+      .delete()
+      .eq('id', activeSession.id) as any);
+
+    if (error) {
+      console.error('Failed to cancel active session:', error);
+      await send('Não foi possível cancelar a jornada. Tente novamente.', mainMenu);
+      return;
+    }
+
+    await send('<b>JORNADA CANCELADA</b>\n\nA jornada foi removida do registro. Nenhum tempo foi contabilizado.', {
+      keyboard: [[{ text: 'INICIAR JORNADA' }, { text: 'RESUMO' }], [{ text: 'MENU' }]],
+      resize_keyboard: true
+    });
+    return;
+  }
+
+  if (textInput === 'NÃO, VOLTAR') {
+    await send('Operação cancelada. A jornada continua em andamento.', {
+      keyboard: [[{ text: 'ENCERRAR JORNADA' }, { text: 'CANCELAR JORNADA' }], [{ text: 'RESUMO' }], [{ text: 'MENU' }]],
       resize_keyboard: true
     });
     return;
@@ -430,7 +481,7 @@ export const handleTelegramUpdate = async (body: any) => {
       await (supabaseAdmin.from('work_days').update({ odometer_start: odoToUse, notes: null }).eq('id', activeDay.id) as any);
       await (supabaseAdmin.from('sessions').insert({ work_day_id: activeDay.id, status: 'active' as any }) as any);
       await send(`Jornada iniciada com odômetro <b>${formatNumberBR(odoToUse)} km</b>!`, {
-        keyboard: [[{ text: 'ENCERRAR JORNADA' }, { text: 'RESUMO' }], [{ text: 'LIMPAR CHAT' }]],
+        keyboard: [[{ text: 'ENCERRAR JORNADA' }, { text: 'CANCELAR JORNADA' }], [{ text: 'RESUMO' }], [{ text: 'LIMPAR CHAT' }]],
         resize_keyboard: true
       });
       return;
