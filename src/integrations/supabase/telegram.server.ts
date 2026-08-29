@@ -710,9 +710,15 @@ export const handleTelegramUpdate = async (body: any) => {
         update.ifood_earned = newIfood;
         update.total_earned = newUber + newIfood;
       } else if (mode === 'EARNED') {
-        // Fallback for old mode if it somehow triggers
-        update.total_earned = num;
-      } else if (mode === 'DELIVERIES') {
+      // Fluxo antigo (ganhos totais): redireciona para escolher a plataforma,
+      // garantindo que o valor caia em uber_earned/ifood_earned e nunca "vire Extra".
+      await (supabaseAdmin.from('work_days').update({ notes: 'CORRECT:EARNED_PLATFORM' }).eq('id', activeDay.id) as any);
+      await send('De qual plataforma você deseja corrigir o ganho?', {
+        keyboard: [[{ text: 'UBER' }, { text: 'IFOOD' }], [{ text: 'CANCELAR' }]],
+        resize_keyboard: true
+      });
+      return;
+    } else if (mode === 'DELIVERIES') {
         update.total_deliveries = Math.round(num);
       } else if (mode === 'ODO_START') {
         update.odometer_start = num;
@@ -822,14 +828,16 @@ export const handleTelegramUpdate = async (body: any) => {
         await send(`⚠️ O odômetro final não pode ser menor que o inicial (${formatNumberBR(activeDay.odometer_start)}). Informe novamente:`, cancelMenu);
         return;
       }
-      await (supabaseAdmin.from('work_days').update({ odometer_end: num }).eq('id', activeDay.id) as any);
-      await send('Quanto você ganhou hoje?', cancelMenu);
+      await (supabaseAdmin.from('work_days').update({ odometer_end: num, notes: 'AWAITING:CLOSE_UBER' }).eq('id', activeDay.id) as any);
+      await send('Uber:', cancelMenu);
       return;
     }
 
     if (activeDay.total_earned === null) {
-      await (supabaseAdmin.from('work_days').update({ total_earned: num }).eq('id', activeDay.id) as any);
-      await send('Quantas entregas você fez hoje?', cancelMenu);
+      // Redireciona para o fluxo por plataforma: Uber e iFood devem ser informados
+      // separadamente para nunca caírem no fallback de "Extra" do painel.
+      await (supabaseAdmin.from('work_days').update({ notes: 'AWAITING:CLOSE_UBER' }).eq('id', activeDay.id) as any);
+      await send('Uber:', cancelMenu);
       return;
     }
 
