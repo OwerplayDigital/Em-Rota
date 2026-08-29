@@ -1,32 +1,43 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   BarChart,
   Bar,
 } from 'recharts'
 import { motion } from 'framer-motion'
-import { TrendingUp, Clock, Package, MapPin, DollarSign, Calendar, Target, Save } from 'lucide-react'
-import { useState, useMemo, useEffect } from 'react'
+import {
+  TrendingUp,
+  Clock,
+  Package,
+  MapPin,
+  DollarSign,
+  Calendar,
+  Gauge,
+  Fuel,
+  Timer,
+  Banknote,
+  Smartphone,
+  Activity,
+} from 'lucide-react'
+import { useState, useMemo } from 'react'
 import { cn } from '@/lib/utils'
-import { useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchDashboardData, saveDailyGoal } from '@/lib/dashboard.functions'
-import { 
-  getDatesForPeriod, 
-  calculateMetrics, 
-  getChartData, 
-  formatCurrency, 
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { fetchDashboardData } from '@/lib/dashboard.functions'
+import {
+  getDatesForPeriod,
+  calculateMetrics,
+  getChartData,
+  formatCurrency,
   formatDuration,
-  calculateGoalMetrics 
+  formatDateBR,
 } from '@/lib/dashboard-utils'
-import { Progress } from '@/components/ui/progress'
-import { toast } from 'sonner'
 
 export const Route = createFileRoute('/_authenticated/dashboard')({
   component: DashboardPage,
@@ -34,77 +45,99 @@ export const Route = createFileRoute('/_authenticated/dashboard')({
 
 const periods = ['Hoje', '7 dias', 'Este mês', 'Este ano']
 
+// Paleta fixa Light Mode (SaaS financeiro)
+const C = {
+  bg: '#f8fafc',
+  title: '#0f172a',
+  sub: '#475569',
+  border: '#e2e8f0',
+  accent: '#0f172a',
+}
+
 function DashboardPage() {
   const [activePeriod, setActivePeriod] = useState('Hoje')
   const { startDate, endDate } = useMemo(() => getDatesForPeriod(activePeriod), [activePeriod])
-  
-  const queryClient = useQueryClient();
+
   const { data } = useSuspenseQuery({
     queryKey: ['dashboard', startDate, endDate],
-    queryFn: () => fetchDashboardData({ data: { startDate, endDate } })
+    queryFn: () => fetchDashboardData({ data: { startDate, endDate } }),
   })
 
-  const goalMutation = useMutation({
-    mutationFn: (goal: number) => saveDailyGoal({ data: { goal } }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      toast.success('Meta diária atualizada com sucesso!');
-    },
-    onError: () => toast.error('Erro ao salvar meta.')
-  });
-
   const metrics = useMemo(() => calculateMetrics(data.workDays, data.sessions), [data])
+
+  const extraEarned = Math.max(0, metrics.totalEarned - metrics.totalUber - metrics.totalIfood)
+
+  // Status da jornada (baseado em dados de hoje)
+  const todayStr = useMemo(() => {
+    const [y, m, d] = formatDateBR(new Date().toISOString().split('T')[0]).split('/')
+    return `${y}-${m}-${d}`
+  }, [])
+  const todayWorkDay = data.workDays.find((wd: any) => wd.date === todayStr)
+  const hasActiveSession = data.sessions.some((s: any) => s.status === 'active') || todayWorkDay?.status === 'in_progress'
+  const lastFinished = !hasActiveSession
+    ? data.workDays.find((wd: any) => wd.status === 'completed')
+    : null
+
+  // Fatias por plataforma (aproximação: entregas proporcionais aos ganhos)
+  const platforms = [
+    {
+      name: 'iFood',
+      color: '#ea1d2c',
+      earned: metrics.totalIfood,
+    },
+    {
+      name: 'Uber',
+      color: '#0f172a',
+      earned: metrics.totalUber,
+    },
+    {
+      name: 'Extra / Particular',
+      color: '#7c3aed',
+      earned: extraEarned,
+    },
+  ].map((p) => ({
+    ...p,
+    share: metrics.totalEarned > 0 ? (p.earned / metrics.totalEarned) * 100 : 0,
+    deliveries: Math.round(metrics.totalDeliveries * (metrics.totalEarned > 0 ? p.earned / metrics.totalEarned : 0)),
+    avg: metrics.totalDeliveries > 0 ? p.earned / Math.max(1, Math.round(metrics.totalDeliveries * (p.earned / metrics.totalEarned))) : 0,
+  }))
+
   const chartData = useMemo(() => getChartData(data.workDays, data.sessions), [data])
-  const goalMetrics = useMemo(() => calculateGoalMetrics(data.workDays, data.todayGoal), [data])
-  const hasData = data.workDays.length > 0;
+  const hasData = data.workDays.length > 0
 
-  const [goalInput, setGoalInput] = useState('')
-
-  useEffect(() => {
-    if (data.todayGoal) {
-      setGoalInput(data.todayGoal.toString())
-    }
-  }, [data.todayGoal])
-
-  const handleSaveGoal = () => {
-    const val = parseFloat(goalInput.replace(',', '.'))
-    if (isNaN(val) || val < 0) {
-      toast.error('Informe um valor válido para a meta.')
-      return
-    }
-    goalMutation.mutate(val)
-  }
+  const odometerInfo = useMemo(() => {
+    const withOdo = data.workDays.filter((wd: any) => wd.odometer_start !== null && wd.odometer_end !== null)
+    if (withOdo.length === 0) return null
+    const minStart = Math.min(...withOdo.map((wd: any) => Number(wd.odometer_start)))
+    const maxEnd = Math.max(...withOdo.map((wd: any) => Number(wd.odometer_end)))
+    return { minStart, maxEnd }
+  }, [data.workDays])
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="p-4 md:p-10 space-y-8 md:space-y-10 bg-background min-h-screen text-foreground relative overflow-hidden"
-    >
-      {/* Background Decor */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/3 rounded-full blur-[120px] -z-10 translate-x-1/2 -translate-y-1/2" />
-      
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10 order-1">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(var(--color-primary),0.5)]" />
-            <span className="text-[10px] font-bold text-primary/70 uppercase tracking-[0.2em]">Em Tempo Real</span>
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground text-xs font-light tracking-wide uppercase">Seu desempenho em movimento.</p>
+    <div className="min-h-screen p-4 md:p-8 space-y-6 md:space-y-8" style={{ backgroundColor: C.bg }}>
+      {/* Cabeçalho + seletor de período (somente leitura) */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight" style={{ color: C.title }}>
+            Dashboard
+          </h1>
+          <p className="text-xs md:text-sm mt-1" style={{ color: C.sub }}>
+            Acompanhamento de desempenho · lançamentos via Telegram
+          </p>
         </div>
-        
-        <div className="flex bg-muted/30 p-1 rounded-2xl border border-border backdrop-blur-md self-start md:self-auto order-2">
+        <div
+          className="flex self-start rounded-xl p-1 border"
+          style={{ backgroundColor: '#ffffff', borderColor: C.border }}
+        >
           {periods.map((period) => (
-            <button 
+            <button
               key={period}
               onClick={() => setActivePeriod(period)}
               className={cn(
-                "px-4 py-2 text-[10px] font-medium rounded-xl transition-all duration-300",
-                activePeriod === period 
-                  ? "bg-primary text-primary-foreground shadow-lg" 
-                  : "text-muted-foreground hover:text-foreground"
+                'px-3 py-1.5 text-xs font-medium rounded-lg transition-all',
+                activePeriod === period ? 'text-white shadow-sm' : 'hover:bg-slate-100'
               )}
+              style={activePeriod === period ? { backgroundColor: C.accent } : { color: C.sub }}
             >
               {period}
             </button>
@@ -112,94 +145,142 @@ function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 relative z-10 order-3">
-        <MetricCard title="GANHOS" value={formatCurrency(metrics.totalEarned)} icon={DollarSign} isHighlight subtext={`Uber: ${formatCurrency(metrics.totalUber)} | iFood: ${formatCurrency(metrics.totalIfood)}`} />
-        <MetricCard title="ENTREGAS" value={metrics.totalDeliveries.toString()} icon={Package} />
-        <MetricCard title="TEMPO NA RUA" value={formatDuration(metrics.totalMs)} icon={Clock} />
-        <MetricCard title="DISTÂNCIA" value={`${metrics.totalDistance.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} km`} icon={MapPin} />
+      {/* HERO CARD — Faturamento do dia */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+        <Card className="rounded-2xl border shadow-sm" style={{ backgroundColor: '#ffffff', borderColor: C.border }}>
+          <CardContent className="p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4" style={{ color: C.sub }} />
+                <span className="text-[11px] font-semibold uppercase tracking-[0.15em]" style={{ color: C.sub }}>
+                  Faturamento Total {activePeriod === 'Hoje' ? 'do Dia' : `· ${activePeriod}`}
+                </span>
+              </div>
+              <div
+                className="text-4xl md:text-6xl font-bold tracking-tight"
+                style={{ color: C.title }}
+              >
+                {formatCurrency(metrics.totalEarned)}
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 md:items-end">
+              <span
+                className={cn(
+                  'inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold border',
+                  hasActiveSession ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-600'
+                )}
+              >
+                <span className={cn('w-2 h-2 rounded-full', hasActiveSession ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400')} />
+                {hasActiveSession ? 'Jornada Ativa' : lastFinished ? `Última Jornada Finalizada · ${formatDateBR(lastFinished.date)}` : 'Sem jornada registrada'}
+              </span>
+              <div className="flex gap-4 text-xs md:text-sm" style={{ color: C.sub }}>
+                <span>{metrics.totalDeliveries} entregas</span>
+                <span>{formatDuration(metrics.totalMs)} on-line</span>
+                <span>{metrics.totalDistance.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* GRID DE MÉTRICAS OPERACIONAIS */}
+      <div>
+        <SectionTitle title="Métricas Operacionais" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+          <MetricCard
+            title="Tempo On-line"
+            value={formatDuration(metrics.totalMs)}
+            icon={Timer}
+          />
+          <MetricCard
+            title="Distância Total"
+            value={`${metrics.totalDistance.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km`}
+            icon={MapPin}
+            subtext={odometerInfo ? `Odômetro ${odometerInfo.minStart.toLocaleString('pt-BR')} → ${odometerInfo.maxEnd.toLocaleString('pt-BR')}` : undefined}
+          />
+          <MetricCard title="Total de Entregas" value={metrics.totalDeliveries.toString()} icon={Package} />
+          <MetricCard title="Média por Hora" value={metrics.avgPerHour > 0 ? formatCurrency(metrics.avgPerHour) : '—'} icon={Clock} />
+          <MetricCard title="Média por KM" value={metrics.avgPerKm > 0 ? formatCurrency(metrics.avgPerKm) : '—'} icon={Fuel} />
+          <MetricCard title="Média por Entrega" value={metrics.avgPerDelivery > 0 ? formatCurrency(metrics.avgPerDelivery) : '—'} icon={Banknote} />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10 order-4">
-        <GoalCard 
-          metrics={goalMetrics} 
-          inputValue={goalInput} 
-          onInputChange={setGoalInput} 
-          onSave={handleSaveGoal}
-          isLoading={goalMutation.isPending}
-        />
-        
-        <ChartCard title="Evolução dos Ganhos" subtitle="Desempenho no período selecionado">
+      {/* DETALHAMENTO POR PLATAFORMA */}
+      <div>
+        <SectionTitle title="Ganhos por Plataforma" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+          {platforms.map((p) => (
+            <Card key={p.name} className="rounded-2xl border shadow-sm" style={{ backgroundColor: '#ffffff', borderColor: C.border }}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2 pt-5 px-5 space-y-0">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider" style={{ color: C.sub }}>
+                  {p.name}
+                </CardTitle>
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: p.color }} />
+              </CardHeader>
+              <CardContent className="px-5 pb-5 pt-0 space-y-3">
+                <div className="text-2xl md:text-3xl font-bold" style={{ color: C.title }}>
+                  {formatCurrency(p.earned)}
+                </div>
+                <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ backgroundColor: '#f1f5f9' }}>
+                  <div className="h-full rounded-full" style={{ width: `${Math.min(100, p.share)}%`, backgroundColor: p.color }} />
+                </div>
+                <div className="flex justify-between text-xs" style={{ color: C.sub }}>
+                  <span>{p.deliveries} entregas ({p.share.toFixed(0)}%)</span>
+                  <span className="font-semibold" style={{ color: C.title }}>
+                    {p.deliveries > 0 ? `${formatCurrency(p.avg)}/entrega` : '—'}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* GRÁFICOS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <ChartCard title="Evolução dos Ganhos" subtitle={activePeriod}>
           {hasData ? (
-            <div className="h-[280px] w-full pt-4">
+            <div className="h-[260px] w-full pt-4">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData}>
                   <defs>
                     <linearGradient id="colorEarned" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0}/>
+                      <stop offset="5%" stopColor={C.accent} stopOpacity={0.25} />
+                      <stop offset="95%" stopColor={C.accent} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} opacity={0.2} />
-                  <XAxis 
-                    dataKey="label" 
-                    stroke="var(--color-muted-foreground)" 
-                    fontSize={10} 
-                    axisLine={false} 
-                    tickLine={false} 
-                    dy={10}
-                    minTickGap={20}
-                  />
-                  <YAxis 
-                    stroke="var(--color-muted-foreground)" 
-                    fontSize={10} 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tickFormatter={(value) => `R$ ${value}`} 
-                  />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '1rem', fontSize: '10px' }}
-                    labelStyle={{ color: 'var(--color-muted-foreground)', marginBottom: '4px', fontWeight: 'bold' }}
-                    itemStyle={{ color: 'var(--color-foreground)', padding: 0 }}
-                    cursor={{ stroke: 'var(--color-primary)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+                  <XAxis dataKey="label" stroke={C.sub} fontSize={10} axisLine={false} tickLine={false} dy={10} minTickGap={20} />
+                  <YAxis stroke={C.sub} fontSize={10} axisLine={false} tickLine={false} tickFormatter={(v) => `R$ ${v}`} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#ffffff', border: `1px solid ${C.border}`, borderRadius: '0.75rem', fontSize: '11px' }}
+                    labelStyle={{ color: C.sub, fontWeight: 'bold', marginBottom: 4 }}
                     formatter={(value: any) => [formatCurrency(Number(value)), 'Ganhos']}
                   />
-                  <Area 
-                    type="monotone" 
-                    dataKey="earned" 
-                    name="Ganhos" 
-                    stroke="var(--color-primary)" 
-                    fillOpacity={1} 
-                    fill="url(#colorEarned)" 
-                    strokeWidth={2}
-                    activeDot={{ r: 4, fill: 'var(--color-primary)', stroke: 'var(--color-background)', strokeWidth: 2 }}
-                    connectNulls
-                  />
+                  <Area type="monotone" dataKey="earned" stroke={C.accent} strokeWidth={2} fill="url(#colorEarned)" connectNulls />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           ) : (
-            <EmptyState icon={TrendingUp} text="Sem registros neste período" subtext="As estatísticas reais aparecerão após você finalizar sua primeira jornada no Telegram." />
+            <EmptyState icon={TrendingUp} text="Sem registros neste período" />
           )}
         </ChartCard>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10 order-5">
-        <ChartCard title="Entregas por Período" subtitle="Volume de trabalho diário">
+        <ChartCard title="Entregas por Dia" subtitle={activePeriod}>
           {hasData ? (
-            <div className="h-[280px] w-full pt-4">
+            <div className="h-[260px] w-full pt-4">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} opacity={0.2} />
-                  <XAxis dataKey="label" stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} dy={10} />
-                  <YAxis stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '1rem', fontSize: '10px' }}
-                    labelStyle={{ color: 'var(--color-muted-foreground)', marginBottom: '4px', fontWeight: 'bold' }}
-                    itemStyle={{ color: 'var(--color-foreground)', padding: 0 }}
-                    cursor={{ fill: 'var(--color-primary)', fillOpacity: 0.1 }}
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+                  <XAxis dataKey="label" stroke={C.sub} fontSize={10} axisLine={false} tickLine={false} dy={10} />
+                  <YAxis stroke={C.sub} fontSize={10} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#ffffff', border: `1px solid ${C.border}`, borderRadius: '0.75rem', fontSize: '11px' }}
+                    labelStyle={{ color: C.sub, fontWeight: 'bold', marginBottom: 4 }}
+                    cursor={{ fill: 'rgba(15,23,42,0.04)' }}
                     formatter={(value: any) => [value, 'Entregas']}
                   />
-                  <Bar dataKey="deliveries" name="Entregas" fill="var(--color-primary)" radius={[4, 4, 0, 0]} barSize={32} />
+                  <Bar dataKey="deliveries" fill={C.accent} radius={[4, 4, 0, 0]} barSize={28} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -207,72 +288,51 @@ function DashboardPage() {
             <EmptyState icon={Calendar} text="Aguardando registros" />
           )}
         </ChartCard>
-
-        <ChartCard title="Tempo na Rua" subtitle="Horas dedicadas por dia">
-          {hasData ? (
-            <div className="h-[280px] w-full pt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} opacity={0.2} />
-                  <XAxis dataKey="label" stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} dy={10} />
-                  <YAxis stroke="var(--color-muted-foreground)" fontSize={10} axisLine={false} tickLine={false} tickFormatter={(value) => `${value}h`} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '1rem', fontSize: '10px' }}
-                    labelStyle={{ color: 'var(--color-muted-foreground)', marginBottom: '4px', fontWeight: 'bold' }}
-                    itemStyle={{ color: 'var(--color-foreground)', padding: 0 }}
-                    cursor={{ fill: 'var(--color-primary)', fillOpacity: 0.1 }}
-                    formatter={(value: any) => [`${Number(value).toFixed(1)}h`, 'Tempo']}
-                  />
-                  <Bar dataKey="hours" name="Horas" fill="var(--color-primary)" opacity={0.8} radius={[4, 4, 0, 0]} barSize={32} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <EmptyState icon={Clock} text="Aguardando registros" />
-          )}
-        </ChartCard>
       </div>
 
-      <div className="space-y-6 relative z-10 order-8">
-        <div className="flex items-center gap-4">
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/30">Métricas de Eficiência</h2>
-          <div className="h-px flex-1 bg-border" />
-        </div>
+      {/* EFICIÊNCIA */}
+      <div>
+        <SectionTitle title="Eficiência" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          <SmallMetric label="R$ / HORA" value={metrics.avgPerHour > 0 ? formatCurrency(metrics.avgPerHour) : "—"} />
-          <SmallMetric label="R$ / KM" value={metrics.avgPerKm > 0 ? formatCurrency(metrics.avgPerKm) : "—"} />
-          <SmallMetric label="R$ / ENTREGA" value={metrics.avgPerDelivery > 0 ? formatCurrency(metrics.avgPerDelivery) : "—"} />
-          <SmallMetric label="ENTREGAS / HORA" value={metrics.deliveriesPerHour > 0 ? metrics.deliveriesPerHour.toFixed(1) : "—"} />
+          <SmallMetric label="Entregas / Hora" value={metrics.deliveriesPerHour > 0 ? metrics.deliveriesPerHour.toFixed(1) : '—'} icon={Gauge} />
+          <SmallMetric label="Horas Trabalhadas" value={`${metrics.totalHours.toFixed(1)}h`} icon={Activity} />
+          <SmallMetric label="Ganho Uber" value={formatCurrency(metrics.totalUber)} icon={Smartphone} />
+          <SmallMetric label="Ganho iFood" value={formatCurrency(metrics.totalIfood)} icon={Smartphone} />
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }
 
-function MetricCard({ title, value, icon: Icon, isHighlight, subtext }: { title: string; value: string; icon: any; isHighlight?: boolean; subtext?: string }) {
+function SectionTitle({ title }: { title: string }) {
   return (
-    <Card className={cn(
-      "border-border/60 shadow-sm rounded-3xl overflow-hidden group transition-all duration-500",
-      isHighlight ? "bg-primary/5 border-primary/20 hover:border-primary/40" : "bg-card hover:border-primary/40"
-    )}>
-      <CardHeader className="flex flex-row items-center justify-between pb-1 space-y-0 pt-4 px-4 md:pt-6 md:px-6">
-        <CardTitle className={cn(
-          "text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em]",
-          isHighlight ? "text-primary/70" : "text-muted-foreground/60"
-        )}>{title}</CardTitle>
-        <Icon className={cn(
-          "w-3 h-3 md:w-4 md:h-4 transition-colors",
-          isHighlight ? "text-primary" : "text-muted-foreground/40 group-hover:text-primary"
-        )} />
+    <div className="flex items-center gap-4 mb-4">
+      <h2 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: C.sub }}>
+        {title}
+      </h2>
+      <div className="h-px flex-1" style={{ backgroundColor: C.border }} />
+    </div>
+  )
+}
+
+function MetricCard({ title, value, icon: Icon, subtext }: { title: string; value: string; icon: any; subtext?: string }) {
+  return (
+    <Card className="rounded-2xl border shadow-sm" style={{ backgroundColor: '#ffffff', borderColor: C.border }}>
+      <CardHeader className="flex flex-row items-center justify-between pb-1 space-y-0 pt-4 px-4 md:pt-5 md:px-5">
+        <CardTitle className="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider" style={{ color: C.sub }}>
+          {title}
+        </CardTitle>
+        <Icon className="w-4 h-4" style={{ color: C.sub }} />
       </CardHeader>
-      <CardContent className="px-4 pb-4 pt-1 md:px-6 md:pb-6 md:pt-2">
-        <div className="flex items-baseline gap-2">
-          <div className={cn(
-            "text-xl md:text-3xl font-bold tracking-tight transition-colors",
-            isHighlight ? "text-primary" : "text-foreground"
-          )}>{value}</div>
-          {subtext && <div className="text-[9px] text-muted-foreground/60 font-medium">{subtext}</div>}
+      <CardContent className="px-4 pb-4 pt-0 md:px-5 md:pb-5">
+        <div className="text-lg md:text-2xl font-bold" style={{ color: C.title }}>
+          {value}
         </div>
+        {subtext && (
+          <div className="text-[9px] md:text-[10px] mt-1 leading-tight" style={{ color: C.sub }}>
+            {subtext}
+          </div>
+        )}
       </CardContent>
     </Card>
   )
@@ -280,153 +340,53 @@ function MetricCard({ title, value, icon: Icon, isHighlight, subtext }: { title:
 
 function ChartCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <Card className="bg-card border-border shadow-sm overflow-hidden rounded-[2.5rem] p-2">
-      <CardHeader className="p-6 md:p-8 pb-2 md:pb-4">
-        <div className="space-y-1">
-          <CardTitle className="text-base md:text-lg font-bold text-foreground">{title}</CardTitle>
-          {subtitle && <p className="text-[10px] md:text-xs text-muted-foreground font-light uppercase tracking-wider">{subtitle}</p>}
-        </div>
+    <Card className="rounded-2xl border shadow-sm" style={{ backgroundColor: '#ffffff', borderColor: C.border }}>
+      <CardHeader className="p-5 md:p-6 pb-2">
+        <CardTitle className="text-base md:text-lg font-bold" style={{ color: C.title }}>
+          {title}
+        </CardTitle>
+        {subtitle && <p className="text-[11px]" style={{ color: C.sub }}>{subtitle}</p>}
       </CardHeader>
-      <CardContent className="p-2 md:p-4 pt-0">
-        {children}
-      </CardContent>
+      <CardContent className="px-2 pb-4 md:px-4">{children}</CardContent>
     </Card>
   )
 }
 
-function GoalCard({ 
-  metrics, 
-  inputValue, 
-  onInputChange, 
-  onSave,
-  isLoading
-}: { 
-  metrics: any; 
-  inputValue: string; 
-  onInputChange: (val: string) => void; 
-  onSave: () => void;
-  isLoading: boolean;
-}) {
+function SmallMetric({ label, value, icon: Icon }: { label: string; value: string; icon: any }) {
   return (
-    <Card className="bg-card border-border shadow-sm overflow-hidden rounded-[2.5rem] p-6 flex flex-col justify-between relative">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -z-10 -translate-y-1/2 translate-x-1/2" />
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h3 className="text-lg font-bold text-foreground">Meta do Dia</h3>
-            <p className="text-[10px] text-muted-foreground font-light uppercase tracking-wider">Acompanhamento de progresso</p>
-          </div>
-          <Target className="w-5 h-5 text-primary/40" />
+    <div
+      className="p-4 md:p-5 rounded-2xl border shadow-sm flex items-start justify-between gap-2"
+      style={{ backgroundColor: '#ffffff', borderColor: C.border }}
+    >
+      <div className="space-y-1">
+        <div className="text-[9px] md:text-[10px] font-semibold uppercase tracking-wider" style={{ color: C.sub }}>
+          {label}
         </div>
-
-        {metrics ? (
-          <div className="space-y-6">
-            <div className="flex justify-between items-end">
-              <div className="space-y-1">
-                <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">Ganhos</div>
-                <div className="text-2xl font-bold text-primary">{formatCurrency(metrics.earnings)}</div>
-              </div>
-              <div className="text-right space-y-1">
-                <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">Meta</div>
-                <div className="text-lg font-medium text-foreground/80">{formatCurrency(metrics.goal)}</div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between text-[10px] font-bold uppercase tracking-tighter">
-                <span className={cn(metrics.isReached ? "text-emerald-500" : "text-primary")}>
-                  {metrics.isReached ? "Meta Atingida" : `${metrics.progress.toFixed(1)}%`}
-                </span>
-                <span className="text-muted-foreground/40">
-                  {metrics.remaining > 0 ? `Faltam ${formatCurrency(metrics.remaining)}` : "Objetivo Concluído"}
-                </span>
-              </div>
-              <Progress 
-                value={Math.min(100, metrics.progress)} 
-                className="h-2 bg-primary/10"
-              />
-            </div>
-            <div className="space-y-3 pt-2 border-t border-border/50">
-              <div className="flex justify-between items-center text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest">
-                <span>Divisão por Plataforma</span>
-              </div>
-              <div className="space-y-2">
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[8px] font-bold uppercase">
-                    <span className="text-[#00c5ff]">Uber</span>
-                    <span className="text-foreground/60">{formatCurrency(metrics.totalUber)}</span>
-                  </div>
-                  <Progress value={metrics.totalEarned > 0 ? (metrics.totalUber / metrics.totalEarned) * 100 : 0} className="h-1 bg-muted" indicatorClassName="bg-[#00c5ff]" />
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[8px] font-bold uppercase">
-                    <span className="text-[#ea1d2c]">iFood</span>
-                    <span className="text-foreground/60">{formatCurrency(metrics.totalIfood)}</span>
-                  </div>
-                  <Progress value={metrics.totalEarned > 0 ? (metrics.totalIfood / metrics.totalEarned) * 100 : 0} className="h-1 bg-muted" indicatorClassName="bg-[#ea1d2c]" />
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="py-4">
-            <p className="text-xs text-muted-foreground italic">Meta diária não configurada.</p>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-8 pt-6 border-t border-border space-y-4">
-        <div className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">Configurar Meta</div>
-        <div className="flex gap-2">
-          <div className="relative flex-1 group">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/40 font-medium text-sm group-focus-within:text-primary transition-colors">R$</span>
-            <input 
-              type="text" 
-              value={inputValue}
-              onChange={(e) => onInputChange(e.target.value)}
-              placeholder="0,00"
-              className="w-full bg-muted/20 border border-border rounded-2xl py-3 pl-10 pr-4 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
-            />
-          </div>
-          <button 
-            onClick={onSave}
-            disabled={isLoading}
-            className="bg-primary text-primary-foreground p-3 rounded-2xl hover:shadow-lg hover:shadow-primary/20 active:scale-95 transition-all disabled:opacity-50"
-          >
-            {isLoading ? (
-              <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-            ) : (
-              <Save className="w-5 h-5" />
-            )}
-          </button>
+        <div className="text-lg md:text-xl font-bold" style={{ color: C.title }}>
+          {value}
         </div>
       </div>
-    </Card>
-  )
-}
-
-function SmallMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] bg-card border border-border shadow-sm space-y-1 md:space-y-2 hover:bg-muted/30 transition-all duration-300 group">
-      <div className="text-[8px] md:text-[9px] font-bold text-muted-foreground/60 tracking-[0.2em] uppercase transition-colors">{label}</div>
-      <div className="text-lg md:text-2xl font-bold text-foreground/80 group-hover:text-foreground transition-colors">{value}</div>
+      <Icon className="w-4 h-4 mt-0.5 shrink-0" style={{ color: C.sub }} />
     </div>
   )
 }
 
-function EmptyState({ icon: Icon, text, subtext }: { icon: any; text: string; subtext?: string }) {
+function EmptyState({ icon: Icon, text }: { icon: any; text: string }) {
   return (
-    <div className="h-[280px] w-full flex items-center justify-center border border-dashed border-border rounded-3xl bg-muted/10 group hover:bg-muted/20 transition-colors">
+    <div
+      className="h-[260px] w-full flex items-center justify-center border border-dashed rounded-2xl"
+      style={{ borderColor: C.border, backgroundColor: '#fafbfc' }}
+    >
       <div className="text-center space-y-3 p-8">
-        <div className="w-12 h-12 rounded-2xl bg-muted/20 flex items-center justify-center mx-auto mb-4 border border-border">
-          <Icon className="w-6 h-6 text-muted-foreground/40" />
+        <div
+          className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto border"
+          style={{ backgroundColor: '#ffffff', borderColor: C.border }}
+        >
+          <Icon className="w-5 h-5" style={{ color: C.sub }} />
         </div>
-        <p className="text-muted-foreground/60 text-xs uppercase tracking-[0.2em] font-bold">{text}</p>
-        {subtext && (
-          <p className="text-muted-foreground/40 text-[10px] max-w-[200px] leading-relaxed mx-auto">
-            {subtext}
-          </p>
-        )}
+        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: C.sub }}>
+          {text}
+        </p>
       </div>
     </div>
   )
