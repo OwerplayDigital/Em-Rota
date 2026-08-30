@@ -74,9 +74,6 @@ function DashboardPage() {
   }, [])
   const todayWorkDay = data.workDays.find((wd: any) => wd.date === todayStr)
   const hasActiveSession = data.sessions.some((s: any) => s.status === 'active') || todayWorkDay?.status === 'in_progress'
-  const lastFinished = !hasActiveSession
-    ? data.workDays.find((wd: any) => wd.status === 'completed')
-    : null
 
   // Fatias por plataforma (aproximação: entregas proporcionais aos ganhos)
   const platforms = [
@@ -117,7 +114,7 @@ function DashboardPage() {
     <div className="min-h-screen p-4 md:p-8 space-y-6 md:space-y-8" style={{ backgroundColor: C.bg }}>
       {/* Cabeçalho + seletor de período (somente leitura) */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="mt-2 pl-14 md:mt-0 md:pl-0">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight" style={{ color: C.title }}>
             Dashboard
           </h1>
@@ -148,7 +145,7 @@ function DashboardPage() {
       {/* HERO CARD — Faturamento do dia */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
         <Card className="rounded-2xl border shadow-sm" style={{ backgroundColor: '#ffffff', borderColor: C.border }}>
-          <CardContent className="p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <CardContent className="px-6 py-6 md:px-8 md:py-7 flex flex-col md:flex-row md:items-center justify-between gap-5">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <DollarSign className="w-4 h-4" style={{ color: C.sub }} />
@@ -157,7 +154,7 @@ function DashboardPage() {
                 </span>
               </div>
               <div
-                className="text-4xl md:text-6xl font-bold tracking-tight"
+                className="text-4xl md:text-5xl font-bold tracking-tight"
                 style={{ color: C.title }}
               >
                 {formatCurrency(metrics.totalEarned)}
@@ -171,13 +168,8 @@ function DashboardPage() {
                 )}
               >
                 <span className={cn('w-2 h-2 rounded-full', hasActiveSession ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400')} />
-                {hasActiveSession ? 'Jornada Ativa' : lastFinished ? `Última Jornada Finalizada · ${formatDateBR(lastFinished.date)}` : 'Sem jornada registrada'}
+                {hasActiveSession ? 'Jornada Ativa' : 'Nenhuma jornada em andamento'}
               </span>
-              <div className="flex gap-4 text-xs md:text-sm" style={{ color: C.sub }}>
-                <span>{metrics.totalDeliveries} entregas</span>
-                <span>{formatDuration(metrics.totalMs)} on-line</span>
-                <span>{metrics.totalDistance.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km</span>
-              </div>
             </div>
           </CardContent>
         </Card>

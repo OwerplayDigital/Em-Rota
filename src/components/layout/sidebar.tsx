@@ -39,7 +39,7 @@ export function Sidebar() {
     <>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-6 right-6 z-[110] md:hidden p-3 bg-primary/10 border border-primary/20 rounded-2xl backdrop-blur-xl text-primary hover:text-primary/80 transition-all active:scale-95"
+        className="fixed top-5 left-5 z-[110] md:hidden p-3 bg-primary/10 border border-primary/20 rounded-2xl backdrop-blur-xl text-primary hover:text-primary/80 transition-all active:scale-95"
       >
         {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
