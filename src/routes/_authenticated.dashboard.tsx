@@ -69,7 +69,7 @@ function DashboardPage() {
 
   // Status da jornada (baseado em dados de hoje)
   const todayStr = useMemo(() => {
-    const [y, m, d] = formatDateBR(new Date().toISOString().split('T')[0]).split('/')
+    const [y, m, d] = formatDateBR(new Date().toISOString().split('T')[0] as string).split('/')
     return `${y}-${m}-${d}`
   }, [])
   const todayWorkDay = data.workDays.find((wd: any) => wd.date === todayStr)
