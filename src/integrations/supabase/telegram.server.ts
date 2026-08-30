@@ -448,7 +448,7 @@ export const handleTelegramUpdate = async (body: any) => {
       return;
     }
 
-    const sessionButtons = sessions.map((session, index) => [{ text: `JORNADA ${index + 1} — ${formatTimeBR(session.start_time)}` }]);
+    const sessionButtons = sessions.map((session: any, index: number) => [{ text: `JORNADA ${index + 1} — ${formatTimeBR(session.start_time)}` }]);
     await (supabaseAdmin.from('work_days').update({ notes: 'DELETE_SESSION:SELECT' }).eq('id', activeDay.id) as any);
     await send('Qual jornada você deseja excluir?', { keyboard: [...sessionButtons, [{ text: 'VOLTAR' }]], resize_keyboard: true });
     return;
@@ -457,7 +457,7 @@ export const handleTelegramUpdate = async (body: any) => {
   if (activeDay?.notes?.startsWith('DELETE_SESSION:') && textInput.startsWith('JORNADA ')) {
     const { data: sessions } = await (supabaseAdmin.from('sessions').select('*').eq('work_day_id', activeDay.id).eq('status', 'completed' as any).order('start_time', { ascending: true }) as any);
     const match = textInput.match(/^JORNADA (\d+)/);
-    const index = match ? parseInt(match[1], 10) - 1 : -1;
+    const index = match?.[1] ? parseInt(match[1], 10) - 1 : -1;
     const session = sessions?.[index];
     if (!session) {
       await send('Selecione uma jornada válida.', correctionMenu);

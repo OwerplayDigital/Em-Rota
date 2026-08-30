@@ -69,7 +69,7 @@ function DashboardPage() {
 
   // Status da jornada (baseado em dados de hoje)
   const todayStr = useMemo(() => {
-    const [y, m, d] = formatDateBR(new Date().toISOString().split('T')[0]).split('/')
+    const [y, m, d] = formatDateBR(new Date().toISOString().split('T')[0] as string).split('/')
     return `${y}-${m}-${d}`
   }, [])
   const todayWorkDay = data.workDays.find((wd: any) => wd.date === todayStr)
@@ -307,7 +307,7 @@ function SectionTitle({ title }: { title: string }) {
   )
 }
 
-function MetricCard({ title, value, icon: Icon, subtext }: { title: string; value: string; icon: any; subtext?: string }) {
+function MetricCard({ title, value, icon: Icon, subtext }: { title: string; value: string; icon: any; subtext?: string | undefined }) {
   return (
     <Card className="rounded-2xl border shadow-sm" style={{ backgroundColor: '#ffffff', borderColor: C.border }}>
       <CardHeader className="flex flex-row items-center justify-between pb-1 space-y-0 pt-4 px-4 md:pt-5 md:px-5">
