@@ -1,16 +1,17 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Card, CardContent } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useState, useMemo } from 'react'
-import { X, Calendar, DollarSign, Package, MapPin, Clock, ArrowRight } from 'lucide-react'
+import {
+  Package, Bike, Clock, Zap, ChevronDown,
+  Gauge, ArrowRight, CircleDollarSign, X
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { fetchDashboardData } from '@/lib/dashboard.functions'
-import { 
-  formatDateBR, 
-  formatTimeBR, 
-  formatDuration, 
+import {
+  formatDateBR,
+  formatTimeBR,
+  formatDuration,
   formatCurrency,
   calculateMetrics
 } from '@/lib/dashboard-utils'
@@ -19,202 +20,262 @@ export const Route = createFileRoute('/_authenticated/historico')({
   component: HistoryPage,
 })
 
+const FILTERS = [
+  { id: 'todos', label: 'Todos' },
+  { id: 'semana', label: 'Esta Semana' },
+  { id: 'mes', label: 'Este Mês' },
+] as const
+
+function startOfWeekBR() {
+  const now = new Date()
+  const day = (now.getDay() + 6) % 7 // segunda = 0
+  const d = new Date(now)
+  d.setDate(now.getDate() - day)
+  return d.toISOString().split('T')[0]
+}
+
+function startOfMonthBR() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+}
+
 function HistoryPage() {
   const [selectedDay, setSelectedDay] = useState<any>(null)
-  
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [filter, setFilter] = useState<string>('todos')
+  const [showEmpty, setShowEmpty] = useState(false)
+
   const { data } = useSuspenseQuery({
     queryKey: ['dashboard', 'history-all'],
-    queryFn: () => fetchDashboardData({ 
-      data: { 
+    queryFn: () => fetchDashboardData({
+      data: {
         startDate: '2020-01-01',
         endDate: new Date().toISOString().split('T')[0]
-      } 
+      }
     })
   })
 
   const historyItems = useMemo(() => {
-    return data.workDays.map(wd => {
-      const daySessions = data.sessions.filter(s => s.work_day_id === wd.id);
-      const metrics = calculateMetrics([wd], daySessions);
-      return {
-        ...wd,
-        metrics,
-        daySessions
-      };
-    });
-  }, [data]);
+    const weekStart = startOfWeekBR()
+    const monthStart = startOfMonthBR()
+
+    return data.workDays
+      .filter(wd => {
+        if (filter === 'semana') return wd.date >= weekStart
+        if (filter === 'mes') return wd.date >= monthStart
+        return true
+      })
+      .map(wd => {
+        const daySessions = data.sessions.filter(s => s.work_day_id === wd.id)
+        const metrics = calculateMetrics([wd], daySessions)
+        return { ...wd, metrics, daySessions }
+      })
+  }, [data, filter])
+
+  const activeDays = historyItems.filter(i => (i.total_earned || 0) > 0 || (i.total_deliveries || 0) > 0)
+  const emptyDays = historyItems.filter(i => (i.total_earned || 0) === 0 && (i.total_deliveries || 0) === 0)
+  const visibleDays = showEmpty ? [...activeDays, ...emptyDays].sort((a, b) => b.date.localeCompare(a.date)) : activeDays
 
   return (
-    <div className="p-6 md:p-10 space-y-8 bg-background min-h-screen text-foreground relative overflow-hidden">
-      <div className="space-y-1.5">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Histórico</h1>
-        <p className="text-muted-foreground text-sm font-light tracking-wide uppercase">Detalhamento das suas jornadas passadas.</p>
-      </div>
-
-      <Card className="bg-card border-border shadow-sm overflow-hidden rounded-2xl relative z-10">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-muted/30">
-                <TableRow className="hover:bg-transparent border-border">
-                  <TableHead className="text-muted-foreground text-[10px] font-bold tracking-widest uppercase py-6 pl-8">DATA</TableHead>
-                  <TableHead className="text-muted-foreground text-[10px] font-bold tracking-widest uppercase">GANHOS</TableHead>
-                  <TableHead className="text-muted-foreground text-[10px] font-bold tracking-widest uppercase">ENTREGAS</TableHead>
-                  <TableHead className="text-muted-foreground text-[10px] font-bold tracking-widest uppercase">DISTÂNCIA</TableHead>
-                  <TableHead className="text-muted-foreground text-[10px] font-bold tracking-widest uppercase">TEMPO</TableHead>
-                  <TableHead className="text-muted-foreground text-[10px] font-bold tracking-widest uppercase text-right pr-8">R$/HORA</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {historyItems.map((item) => (
-                  <TableRow 
-                    key={item.id}
-                    className="border-border hover:bg-muted/50 transition-colors cursor-pointer group"
-                    onClick={() => setSelectedDay(item)}
-                  >
-                    <TableCell className="font-medium text-foreground py-5 pl-8">{formatDateBR(item.date)}</TableCell>
-                    <TableCell className="text-foreground/80">{formatCurrency(item.total_earned || 0)}</TableCell>
-                    <TableCell className="text-foreground/80">{item.total_deliveries || 0}</TableCell>
-                    <TableCell className="text-foreground/80">{(item.odometer_end && item.odometer_start) ? `${(Number(item.odometer_end) - Number(item.odometer_start)).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} km` : '—'}</TableCell>
-                    <TableCell className="text-foreground/80">{formatDuration(item.metrics.totalMs)}</TableCell>
-                    <TableCell className="text-primary font-bold text-right pr-8">
-                      <div className="flex items-center justify-end gap-2">
-                        {item.metrics.avgPerHour > 0 ? `${formatCurrency(item.metrics.avgPerHour)}/h` : '—'}
-                        <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          
-          <div className="p-24 text-center space-y-3 border-t border-border">
-            <p className="text-muted-foreground/30 text-xs uppercase tracking-[0.3em] font-bold">Fim dos registros</p>
-            <p className="text-muted-foreground/40 text-[10px] max-w-[200px] mx-auto leading-relaxed">
-              Novas jornadas aparecerão aqui após serem finalizadas no bot.
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="mx-auto max-w-2xl px-5 pb-16 pt-6 md:px-10 md:pt-10 space-y-6">
+        {/* Cabeçalho */}
+        <div className="flex items-center gap-4">
+          <div className="w-11 shrink-0 md:hidden" aria-hidden="true" />
+          <div className="min-w-0 space-y-0.5">
+            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Histórico</h1>
+            <p className="text-muted-foreground text-[11px] font-light tracking-wide uppercase">
+              Suas jornadas passadas.
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      <AnimatePresence>
-        {selectedDay && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedDay(null)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60]"
-            />
-            <motion.div 
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed top-0 right-0 h-full w-full max-w-md bg-card border-l border-border shadow-2xl z-[70] p-8 flex flex-col"
+        {/* Filtros */}
+        <div className="flex gap-2 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0">
+          {FILTERS.map(f => (
+            <button
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              className={cn(
+                "shrink-0 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide transition-all active:scale-95",
+                filter === f.id
+                  ? "bg-primary border-primary text-primary-foreground shadow-sm"
+                  : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-foreground/20"
+              )}
             >
-              <div className="flex items-center justify-between mb-12">
-                <div className="space-y-1">
-                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Detalhes da Jornada</div>
-                  <h2 className="text-2xl font-bold text-foreground">{formatDateBR(selectedDay.date)}</h2>
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Feed de Cards */}
+        <div className="space-y-3">
+          {visibleDays.length === 0 && (
+            <div className="rounded-2xl border border-border bg-card p-12 text-center space-y-2">
+              <p className="text-muted-foreground text-xs uppercase tracking-[0.2em] font-bold">Nenhum registro</p>
+              <p className="text-muted-foreground/60 text-[11px]">
+                Novas jornadas aparecerão aqui após serem finalizadas no bot.
+              </p>
+            </div>
+          )}
+
+          {visibleDays.map(item => (
+            <HistoryCard
+              key={item.id}
+              item={item}
+              expanded={expandedId === item.id}
+              onToggle={() => setExpandedId(expandedId === item.id ? null : item.id)}
+            />
+          ))}
+
+          {emptyDays.length > 0 && (
+            <button
+              onClick={() => setShowEmpty(!showEmpty)}
+              className="w-full rounded-xl border border-dashed border-border bg-muted/20 py-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground hover:bg-muted/40 transition-colors"
+            >
+              {showEmpty
+                ? 'Ocultar dias sem corridas'
+                : `Mostrar ${emptyDays.length} ${emptyDays.length === 1 ? 'dia zerado' : 'dias zerados'}`}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function HistoryCard({ item, expanded, onToggle }: { item: any; expanded: boolean; onToggle: () => void }) {
+  const distance = (item.odometer_end !== null && item.odometer_start !== null)
+    ? Number(item.odometer_end) - Number(item.odometer_start)
+    : null
+
+  const uber = Number(item.uber_earned || 0)
+  const ifood = Number(item.ifood_earned || 0)
+  const extra = Math.max(0, (item.total_earned || 0) - uber - ifood)
+  const deliveries = item.total_deliveries || 0
+  const avgPerDelivery = deliveries > 0 ? (item.total_earned || 0) / deliveries : 0
+
+  return (
+    <div
+      onClick={onToggle}
+      className={cn(
+        "w-full cursor-pointer rounded-2xl border bg-card text-left transition-all duration-200 overflow-hidden",
+        expanded
+          ? "border-primary/30 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.08)]"
+          : "border-[#e2e8f0] shadow-[0_2px_8px_-4px_rgba(0,0,0,0.04)] hover:border-primary/20 hover:shadow-[0_6px_20px_-6px_rgba(0,0,0,0.06)]"
+      )}
+    >
+      {/* Card fechado */}
+      <div className="p-5 space-y-4">
+        <div className="flex items-baseline justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-sm font-semibold text-foreground">{formatDateBR(item.date)}</span>
+            <ChevronDown className={cn(
+              "w-4 h-4 shrink-0 text-muted-foreground transition-transform duration-300",
+              expanded && "rotate-180 text-primary"
+            )} />
+          </div>
+          <span className="text-xl font-bold tracking-tight text-primary shrink-0">
+            {formatCurrency(item.total_earned || 0)}
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Badge icon={Package} value={deliveries.toString()} />
+          <Badge icon={Bike} value={distance !== null ? `${distance.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km` : '—'} />
+          <Badge icon={Clock} value={item.metrics.totalMs > 0 ? formatDuration(item.metrics.totalMs) : '—'} />
+          <Badge icon={Zap} value={item.metrics.avgPerHour > 0 ? `${formatCurrency(item.metrics.avgPerHour)}/h` : '—'} highlight />
+        </div>
+      </div>
+
+      {/* Expansão */}
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeInOut' }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-border px-5 py-5 space-y-6">
+              {/* Plataformas */}
+              <div className="space-y-3">
+                <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
+                  Por Plataforma
+                </h3>
+                <div className="space-y-2">
+                  <PlatformRow label="Uber" value={uber} color="bg-cyan-500" />
+                  <PlatformRow label="iFood" value={ifood} color="bg-red-500" />
+                  {extra > 0 && <PlatformRow label="Extra / Particular" value={extra} color="bg-primary" />}
                 </div>
-                <button 
-                  onClick={() => setSelectedDay(null)}
-                  className="p-2 hover:bg-muted/50 rounded-full transition-colors text-muted-foreground hover:text-foreground"
-                >
-                  <X className="w-6 h-6" />
-                </button>
               </div>
 
-              <div className="flex-1 space-y-8 overflow-y-auto pr-2 custom-scrollbar">
-                <div className="grid grid-cols-2 gap-4">
-                  <DetailItem icon={DollarSign} label="Ganhos Totais" value={formatCurrency(selectedDay.total_earned || 0)} color="text-primary" />
-                  <DetailItem icon={Package} label="Entregas" value={(selectedDay.total_deliveries || 0).toString()} />
-                  <DetailItem icon={MapPin} label="Distância" value={(selectedDay.odometer_end && selectedDay.odometer_start) ? `${(Number(selectedDay.odometer_end) - Number(selectedDay.odometer_start)).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} km` : '—'} />
-                  <DetailItem icon={Clock} label="Duração" value={formatDuration(selectedDay.metrics.totalMs)} />
-                </div>
-
-                <div className="space-y-4 pt-8 border-t border-border">
-                  <h3 className="text-xs font-bold text-muted-foreground/30 uppercase tracking-widest">Odômetro</h3>
-                  <div className="bg-muted/20 rounded-2xl p-6 border border-border flex justify-between items-center relative overflow-hidden">
-                    <div className="space-y-1">
-                      <div className="text-[9px] text-muted-foreground/50 uppercase tracking-tighter">Início</div>
-                      <div className="text-xl font-bold text-foreground">{selectedDay.odometer_start !== null ? Number(selectedDay.odometer_start).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '—'} km</div>
-                    </div>
-                    <div className="h-8 w-px bg-border" />
-                    <div className="space-y-1 text-right">
-                      <div className="text-[9px] text-muted-foreground/50 uppercase tracking-tighter">Fim</div>
-                      <div className="text-xl font-bold text-foreground">{selectedDay.odometer_end !== null ? Number(selectedDay.odometer_end).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '—'} km</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4 pt-8 border-t border-border">
-                  <h3 className="text-xs font-bold text-muted-foreground/30 uppercase tracking-widest">Eficiência</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 rounded-2xl bg-muted/20 border border-border">
-                      <div className="text-[9px] text-muted-foreground/50 uppercase tracking-tighter mb-1">R$ / HORA</div>
-                      <div className="text-lg font-bold text-primary">{selectedDay.metrics.avgPerHour > 0 ? `${formatCurrency(selectedDay.metrics.avgPerHour)}/h` : '—'}</div>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-muted/20 border border-border">
-                      <div className="text-[9px] text-muted-foreground/50 uppercase tracking-tighter mb-1">Jornadas</div>
-                      <div className="text-lg font-medium text-foreground">{selectedDay.daySessions.length}</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4 pt-8 border-t border-border">
-                  <h3 className="text-xs font-bold text-muted-foreground/30 uppercase tracking-widest">Jornadas Detalhadas</h3>
-                  <div className="space-y-3">
-                    {selectedDay.daySessions.length > 0 ? (
-                      selectedDay.daySessions.sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()).map((session: any, idx: number) => (
-                        <div key={session.id} className="p-4 rounded-2xl bg-muted/10 border border-border/50 flex items-center justify-between group">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
-                              {idx + 1}
-                            </div>
-                            <div className="space-y-0.5">
-                              <div className="text-[10px] text-muted-foreground/60 uppercase tracking-tighter">
-                                {formatTimeBR(session.start_time)} — {session.end_time ? formatTimeBR(session.end_time) : '...'}
-                              </div>
-                              <div className="text-xs font-medium text-foreground/80">
-                                {session.end_time ? formatDuration(new Date(session.end_time).getTime() - new Date(session.start_time).getTime()) : 'Em andamento'}
-                              </div>
-                            </div>
-                          </div>
-                          <Clock className="w-3 h-3 text-muted-foreground/20 group-hover:text-primary/40 transition-colors" />
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-[10px] text-muted-foreground/40 italic">Nenhuma jornada registrada.</p>
-                    )}
-                  </div>
+              {/* Odômetro */}
+              <div className="space-y-3">
+                <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
+                  Odômetro
+                </h3>
+                <div className="flex items-center gap-3 rounded-xl bg-muted/30 border border-border p-4">
+                  <Gauge className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm font-semibold text-foreground">
+                    {item.odometer_start !== null
+                      ? Number(item.odometer_start).toLocaleString('pt-BR', { maximumFractionDigits: 2 })
+                      : '—'}
+                  </span>
+                  <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
+                  <span className="text-sm font-semibold text-foreground">
+                    {item.odometer_end !== null
+                      ? Number(item.odometer_end).toLocaleString('pt-BR', { maximumFractionDigits: 2 })
+                      : '—'}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground ml-auto">km</span>
                 </div>
               </div>
 
-              <div className="mt-auto pt-8 border-t border-border">
-                <button className="w-full py-4 rounded-xl bg-muted/30 border border-border text-xs font-bold uppercase tracking-widest hover:bg-muted/50 transition-colors text-foreground/80 hover:text-foreground">
-                  Gerar Comprovante
-                </button>
+              {/* Média por entrega */}
+              <div className="flex items-center justify-between rounded-xl bg-primary/5 border border-primary/10 p-4">
+                <div className="flex items-center gap-3">
+                  <CircleDollarSign className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Média por Entrega
+                  </span>
+                </div>
+                <span className="text-sm font-bold text-primary">
+                  {avgPerDelivery > 0 ? formatCurrency(avgPerDelivery) : '—'}
+                </span>
               </div>
-            </motion.div>
-          </>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
   )
 }
 
-function DetailItem({ icon: Icon, label, value, color = "text-foreground" }: any) {
+function Badge({ icon: Icon, value, highlight = false }: { icon: any; value: string; highlight?: boolean }) {
   return (
-    <div className="p-5 rounded-2xl bg-muted/20 border border-border space-y-3 relative overflow-hidden group hover:bg-muted/30 transition-colors">
-      <Icon className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
-      <div className="space-y-0.5">
-        <div className="text-[9px] text-muted-foreground/50 uppercase tracking-tighter">{label}</div>
-        <div className={cn("text-xl font-bold tracking-tight", color)}>{value}</div>
+    <div className={cn(
+      "flex items-center gap-1.5 rounded-full px-2.5 py-1",
+      highlight ? "bg-primary/10" : "bg-muted/40"
+    )}>
+      <Icon className={cn("w-3.5 h-3.5", highlight ? "text-primary" : "text-muted-foreground")} />
+      <span className={cn(
+        "text-[11px] font-semibold",
+        highlight ? "text-primary" : "text-foreground/80"
+      )}>{value}</span>
+    </div>
+  )
+}
+
+function PlatformRow({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
+      <div className="flex items-center gap-2.5">
+        <div className={cn("w-2 h-2 rounded-full", color)} />
+        <span className="text-xs font-semibold text-foreground/80">{label}</span>
       </div>
+      <span className="text-sm font-bold text-foreground">{formatCurrency(value)}</span>
     </div>
   )
 }
