@@ -307,7 +307,7 @@ function SectionTitle({ title }: { title: string }) {
   )
 }
 
-function MetricCard({ title, value, icon: Icon, subtext }: { title: string; value: string; icon: any; subtext?: string }) {
+function MetricCard({ title, value, icon: Icon, subtext }: { title: string; value: string; icon: any; subtext?: string | undefined }) {
   return (
     <Card className="rounded-2xl border shadow-sm" style={{ backgroundColor: '#ffffff', borderColor: C.border }}>
       <CardHeader className="flex flex-row items-center justify-between pb-1 space-y-0 pt-4 px-4 md:pt-5 md:px-5">
