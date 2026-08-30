@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
-  BarChart3, Clock, Gauge, Package, TrendingUp, Zap,
+  Clock, Gauge, Package, TrendingUp, Zap,
   Trophy, Wallet
 } from 'lucide-react'
 import { useSuspenseQuery } from '@tanstack/react-query'
