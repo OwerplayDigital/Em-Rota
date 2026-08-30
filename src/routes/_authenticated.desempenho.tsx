@@ -1,138 +1,260 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { TrendingUp, Award, Zap, BarChart3, Target, PieChart } from 'lucide-react'
-import { useMemo } from 'react'
+import {
+  Clock, Gauge, Package, TrendingUp, Zap,
+  Trophy, Wallet
+} from 'lucide-react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { fetchDashboardData } from '@/lib/dashboard.functions'
-import { 
-  calculateMetrics, 
-  formatCurrency, 
-  formatDuration 
+import {
+  calculateMetrics,
+  formatCurrency,
+  formatDuration
 } from '@/lib/dashboard-utils'
+import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_authenticated/desempenho')({
   component: PerformancePage,
 })
 
+const PERIODS = [
+  { id: '7d', label: 'Últimos 7 dias' },
+  { id: '30d', label: 'Últimos 30 dias' },
+  { id: 'all', label: 'Geral' },
+] as const
+
+function periodStart(period: string): string {
+  const now = new Date()
+  const d = new Date(now)
+  if (period === '7d') d.setDate(now.getDate() - 6)
+  else if (period === '30d') d.setDate(now.getDate() - 29)
+  else return '2020-01-01'
+  return d.toISOString().split('T')[0] as string
+}
+
 function PerformancePage() {
+  const [period, setPeriod] = useState<string>('30d')
+
   const { data } = useSuspenseQuery({
     queryKey: ['dashboard', 'performance-all'],
-    queryFn: () => fetchDashboardData({ 
-      data: { 
+    queryFn: () => fetchDashboardData({
+      data: {
         startDate: '2020-01-01',
         endDate: new Date().toISOString().split('T')[0]
-      } 
+      }
     })
   })
 
-  const metrics = useMemo(() => calculateMetrics(data.workDays, data.sessions), [data])
-  
-  const records = useMemo(() => {
-    if (!data.workDays || data.workDays.length === 0) return { maxEarned: 0, maxKmValue: 0 };
-    
-    const maxEarned = Math.max(...data.workDays.map(wd => wd.total_earned || 0));
-    
-    const costPerKmList = data.workDays
-      .map(wd => {
-        const dist = (wd.odometer_end && wd.odometer_start) ? wd.odometer_end - wd.odometer_start : 0;
-        return dist > 0 ? (wd.total_earned || 0) / dist : null;
-      })
-      .filter((v): v is number => v !== null);
-      
+  const startDate = periodStart(period)
+
+  const filtered = useMemo(() => {
+    const workDays = data.workDays.filter(wd => wd.date >= startDate)
+    const ids = new Set(workDays.map(wd => wd.id))
+    const sessions = data.sessions.filter(s => ids.has(s.work_day_id))
+    return { workDays, sessions }
+  }, [data, startDate])
+
+  const metrics = useMemo(
+    () => calculateMetrics(filtered.workDays, filtered.sessions),
+    [filtered]
+  )
+  const avgDays = filtered.workDays.length || 1
+
+  const platform = useMemo(() => {
+    const ifood = metrics.totalIfood
+    const uber = metrics.totalUber
+    const total = ifood + uber
     return {
-      maxEarned,
-      maxKmValue: costPerKmList.length > 0 ? Math.max(...costPerKmList) : 0
-    } as { maxEarned: number; maxKmValue: number };
-  }, [data]);
+      ifood, uber, total,
+      ifoodPct: total > 0 ? (ifood / total) * 100 : 0,
+      uberPct: total > 0 ? (uber / total) * 100 : 0,
+    }
+  }, [metrics])
 
+  const records = useMemo(() => {
+    let maxEarned = 0
+    let maxDeliveries = 0
+    let bestPerHour = 0
 
-  const avgDays = data.workDays.length || 1;
+    data.workDays.forEach(wd => {
+      maxEarned = Math.max(maxEarned, wd.total_earned || 0)
+      maxDeliveries = Math.max(maxDeliveries, wd.total_deliveries || 0)
+      const daySessions = data.sessions.filter(s => s.work_day_id === wd.id)
+      const dayMetrics = calculateMetrics([wd], daySessions)
+      if (dayMetrics.totalHours >= 0.5) {
+        bestPerHour = Math.max(bestPerHour, dayMetrics.avgPerHour)
+      }
+    })
+
+    return { maxEarned, maxDeliveries, bestPerHour }
+  }, [data])
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="p-6 md:p-10 space-y-12 bg-background min-h-screen text-foreground relative overflow-hidden"
-    >
-      <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-primary/3 rounded-full blur-[150px] -z-10 -translate-x-1/2 -translate-y-1/2" />
-
-      <div className="space-y-1.5 relative z-10">
-        <div className="flex items-center gap-2 mb-2">
-          <Zap className="w-3 h-3 text-primary" />
-          <span className="text-[10px] font-bold text-primary/70 uppercase tracking-[0.2em]">Insights Avançados</span>
-        </div>
-        <h1 className="text-4xl font-bold tracking-tight text-foreground">Desempenho</h1>
-        <p className="text-muted-foreground text-sm font-light tracking-wide uppercase">Análise profunda da sua rentabilidade e tendências.</p>
-      </div>
-
-      <div className="grid gap-12 md:grid-cols-3 relative z-10">
-        <MetricItem icon={BarChart3} label="Ganhos médios por dia" value={formatCurrency(metrics.totalEarned / avgDays)} />
-        <MetricItem icon={TrendingUp} label="Ganhos por hora" value={metrics.avgPerHour > 0 ? `${formatCurrency(metrics.avgPerHour)}/h` : '—'} />
-        <MetricItem icon={Zap} label="Entregas por hora" value={metrics.deliveriesPerHour > 0 ? metrics.deliveriesPerHour.toFixed(1) : '—'} />
-        <MetricItem icon={Target} label="Ganhos por km" value={metrics.avgPerKm > 0 ? formatCurrency(metrics.avgPerKm) : '—'} />
-        <MetricItem icon={Award} label="Média de entregas" value={(metrics.totalDeliveries / avgDays).toFixed(1)} />
-        <MetricItem icon={PieChart} label="Tempo médio trabalhado" value={formatDuration(metrics.totalMs / avgDays)} />
-
-      </div>
-
-      <Card className="bg-card border-border p-20 text-center rounded-[3rem] shadow-sm relative z-10 group overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-foreground/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-        <CardContent className="space-y-8 relative z-10">
-          <div className="text-muted-foreground/30 uppercase tracking-[0.6em] text-[10px] font-bold">Análise Comparativa</div>
-          <div className="space-y-3">
-            <h3 className="text-2xl text-foreground/60 font-light">
-              {data.workDays.length >= 7 ? 'Análise de tendência ativa' : 'Dados insuficientes para gerar tendências'}
-            </h3>
-            <p className="text-xs text-muted-foreground/40 max-w-sm mx-auto leading-relaxed font-light">
-              {data.workDays.length >= 7 
-                ? 'Seu desempenho está sendo comparado com a média das últimas semanas.' 
-                : 'O sistema utiliza algoritmos para calcular variações de rentabilidade. Precisamos de pelo menos 7 dias de atividades.'}
+    <div className="min-h-screen bg-[#f8fafc] text-foreground">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mx-auto max-w-2xl px-5 pb-16 pt-6 md:px-10 md:pt-10 space-y-6"
+      >
+        {/* Cabeçalho */}
+        <div className="flex items-center gap-4">
+          <div className="w-11 shrink-0 md:hidden" aria-hidden="true" />
+          <div className="min-w-0 space-y-0.5">
+            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Desempenho</h1>
+            <p className="text-muted-foreground text-[11px] font-light tracking-wide uppercase">
+              Insights avançados da sua rentabilidade.
             </p>
           </div>
-          <div className="pt-4">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted/20 border border-border text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">
-              {data.workDays.length > 0 ? `${data.workDays.length} Jornadas Registradas` : 'Aguardando Primeira Jornada'}
-            </div>
-          </div>
+        </div>
 
-        </CardContent>
-      </Card>
+        {/* Filtros de período */}
+        <div className="flex gap-2 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0">
+          {PERIODS.map(p => (
+            <button
+              key={p.id}
+              onClick={() => setPeriod(p.id)}
+              className={cn(
+                "shrink-0 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide transition-all active:scale-95",
+                period === p.id
+                  ? "bg-primary border-primary text-primary-foreground shadow-sm"
+                  : "bg-white border-[#e2e8f0] text-muted-foreground hover:text-foreground hover:border-foreground/20"
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
 
-      <div className="grid gap-6 md:grid-cols-2 relative z-10">
-        <div className="p-8 rounded-[2.5rem] bg-card border border-border space-y-4">
-          <h4 className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em]">Recorde Pessoal</h4>
+        {/* Grid de Métricas 2x3 */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <MetricCard icon={Wallet} label="Ganhos médios/dia" value={formatCurrency(metrics.totalEarned / avgDays)} />
+          <MetricCard icon={TrendingUp} label="Ganhos por hora" value={metrics.avgPerHour > 0 ? `${formatCurrency(metrics.avgPerHour)}/h` : '—'} />
+          <MetricCard icon={Gauge} label="Ganhos por km" value={metrics.avgPerKm > 0 ? `${formatCurrency(metrics.avgPerKm)}/km` : '—'} />
+          <MetricCard icon={Zap} label="Entregas por hora" value={metrics.deliveriesPerHour > 0 ? metrics.deliveriesPerHour.toFixed(1) : '—'} />
+          <MetricCard icon={Package} label="Média entregas/dia" value={filtered.workDays.length > 0 ? (metrics.totalDeliveries / avgDays).toFixed(1) : '—'} />
+          <MetricCard icon={Clock} label="Tempo médio" value={metrics.totalMs > 0 ? formatDuration(metrics.totalMs / avgDays) : '—'} />
+        </div>
+
+        {/* Comparativo de Plataformas */}
+        <div className="rounded-2xl border border-[#e2e8f0] bg-white p-5 md:p-6 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.04)] space-y-5">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground/50 font-light">Maior ganho em um dia</span>
-            <span className="text-lg font-medium text-foreground/60">{records.maxEarned > 0 ? formatCurrency(records.maxEarned) : '—'}</span>
+            <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
+              Plataformas
+            </h3>
+            <span className="text-[10px] font-semibold text-muted-foreground">
+              Total: {formatCurrency(platform.total)}
+            </span>
+          </div>
 
+          {/* Barra proporcional */}
+          <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden flex">
+            <div
+              className="h-full bg-red-500 transition-all duration-500"
+              style={{ width: `${platform.ifoodPct}%` }}
+            />
+            <div
+              className="h-full bg-slate-800 transition-all duration-500"
+              style={{ width: `${platform.uberPct}%` }}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <PlatformCompareRow
+              label="iFood"
+              dotColor="bg-red-500"
+              pct={platform.ifoodPct}
+              total={platform.ifood}
+              avgPerDelivery={metrics.totalDeliveries > 0 ? platform.ifood / metrics.totalDeliveries : 0}
+            />
+            <PlatformCompareRow
+              label="Uber"
+              dotColor="bg-slate-800"
+              pct={platform.uberPct}
+              total={platform.uber}
+              avgPerDelivery={metrics.totalDeliveries > 0 ? platform.uber / metrics.totalDeliveries : 0}
+            />
           </div>
         </div>
-        <div className="p-8 rounded-[2.5rem] bg-card border border-border space-y-4">
-          <h4 className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em]">Eficiência Logística</h4>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground/50 font-light">Menor custo por km</span>
-            <span className="text-lg font-medium text-foreground/60">{records.maxKmValue > 0 ? `${formatCurrency(records.maxKmValue as number)}/km` : '—'}</span>
 
+        {/* Recordes Pessoais */}
+        <div className="rounded-2xl border border-amber-200/60 bg-gradient-to-b from-amber-50/80 to-white p-5 md:p-6 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.04)] space-y-4">
+          <div className="flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-amber-500" />
+            <h3 className="text-[10px] font-bold text-amber-600 uppercase tracking-[0.2em]">
+              Recordes Pessoais
+            </h3>
+          </div>
+          <div className="space-y-2">
+            <RecordRow
+              emoji="🏆"
+              label="Maior ganho em um dia"
+              value={records.maxEarned > 0 ? formatCurrency(records.maxEarned) : '—'}
+            />
+            <RecordRow
+              emoji="⚡"
+              label="Melhor média R$/hora"
+              value={records.bestPerHour > 0 ? `${formatCurrency(records.bestPerHour)}/h` : '—'}
+            />
+            <RecordRow
+              emoji="📦"
+              label="Mais entregas em uma jornada"
+              value={records.maxDeliveries > 0 ? records.maxDeliveries.toString() : '—'}
+            />
           </div>
         </div>
-      </div>
-    </motion.div>
-  )
-}
-
-function MetricItem({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
-  return (
-    <div className="space-y-4 group">
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-xl bg-muted/20 flex items-center justify-center border border-border group-hover:bg-muted/30 transition-colors">
-          <Icon className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
-        </div>
-        <div className="text-[10px] text-muted-foreground/30 uppercase tracking-[0.2em] font-bold group-hover:text-muted-foreground/50 transition-colors">{label}</div>
-      </div>
-      <div className="text-4xl font-bold text-foreground/80 tracking-tighter group-hover:text-foreground transition-colors">{value}</div>
+      </motion.div>
     </div>
   )
 }
 
+function MetricCard({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-[#e2e8f0] bg-white p-4 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.04)] space-y-2.5">
+      <div className="flex items-center gap-2">
+        <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+          <Icon className="w-3.5 h-3.5 text-primary" />
+        </div>
+        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest leading-tight">
+          {label}
+        </span>
+      </div>
+      <div className="text-lg font-bold tracking-tight text-foreground truncate">{value}</div>
+    </div>
+  )
+}
 
+function PlatformCompareRow({ label, dotColor, pct, total, avgPerDelivery }: {
+  label: string
+  dotColor: string
+  pct: number
+  total: number
+  avgPerDelivery: number
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-[#e2e8f0] bg-white px-4 py-3">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div className={cn("w-2.5 h-2.5 rounded-full shrink-0", dotColor)} />
+        <div className="min-w-0">
+          <div className="text-xs font-semibold text-foreground">{label}</div>
+          <div className="text-[10px] text-muted-foreground">
+            {pct.toFixed(0)}% do total · {avgPerDelivery > 0 ? `${formatCurrency(avgPerDelivery)}/entrega` : '—'}
+          </div>
+        </div>
+      </div>
+      <span className="text-sm font-bold text-foreground shrink-0">{formatCurrency(total)}</span>
+    </div>
+  )
+}
+
+function RecordRow({ emoji, label, value }: { emoji: string; label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-amber-100 bg-white px-4 py-3">
+      <div className="flex items-center gap-3 min-w-0">
+        <span className="text-base leading-none">{emoji}</span>
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      </div>
+      <span className="text-sm font-bold text-foreground shrink-0">{value}</span>
+    </div>
+  )
+}
