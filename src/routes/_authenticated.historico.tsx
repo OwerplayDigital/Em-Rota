@@ -31,7 +31,7 @@ function startOfWeekBR() {
   const day = (now.getDay() + 6) % 7 // segunda = 0
   const d = new Date(now)
   d.setDate(now.getDate() - day)
-  return d.toISOString().split('T')[0]
+  return d.toISOString().split('T')[0] as string
 }
 
 function startOfMonthBR() {
