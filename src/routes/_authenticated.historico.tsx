@@ -26,45 +26,61 @@ const FILTERS = [
   { id: 'mes', label: 'Este Mês' },
 ] as const
 
+type FilterId = (typeof FILTERS)[number]['id']
+
+function pad2(n: number) {
+  return String(n).padStart(2, '0')
+}
+
+function todayStrBR() {
+  const now = new Date()
+  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`
+}
+
 function startOfWeekBR() {
   const now = new Date()
   const day = (now.getDay() + 6) % 7 // segunda = 0
-  const d = new Date(now)
-  d.setDate(now.getDate() - day)
-  return d.toISOString().split('T')[0] as string
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day)
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
 }
 
 function startOfMonthBR() {
   const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-01`
+}
+
+function dateRangeForFilter(filter: FilterId) {
+  const endDate = todayStrBR()
+  switch (filter) {
+    case 'semana':
+      return { startDate: startOfWeekBR(), endDate }
+    case 'mes':
+      return { startDate: startOfMonthBR(), endDate }
+    default:
+      return { startDate: '2020-01-01', endDate }
+  }
 }
 
 function HistoryPage() {
   const [selectedDay, setSelectedDay] = useState<any>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [filter, setFilter] = useState<string>('todos')
+  const [filter, setFilter] = useState<FilterId>('todos')
   const [showEmpty, setShowEmpty] = useState(false)
 
+  // O filtro selecionado define o intervalo de datas buscado no Supabase
+  const { startDate, endDate } = useMemo(() => dateRangeForFilter(filter), [filter])
+
   const { data } = useSuspenseQuery({
-    queryKey: ['dashboard', 'history-all'],
-    queryFn: () => fetchDashboardData({
-      data: {
-        startDate: '2020-01-01',
-        endDate: new Date().toISOString().split('T')[0]
-      }
-    })
+    queryKey: ['dashboard', 'history', filter, startDate, endDate],
+    queryFn: () => fetchDashboardData({ data: { startDate, endDate } }),
   })
 
   const historyItems = useMemo(() => {
-    const weekStart = startOfWeekBR()
-    const monthStart = startOfMonthBR()
+    const range = dateRangeForFilter(filter)
 
+    // Filtra por intervalo de datas e mantém a ordem (mais recente → mais antigo)
     return data.workDays
-      .filter(wd => {
-        if (filter === 'semana') return wd.date >= weekStart
-        if (filter === 'mes') return wd.date >= monthStart
-        return true
-      })
+      .filter(wd => wd.date >= range.startDate && wd.date <= range.endDate)
       .map(wd => {
         const daySessions = data.sessions.filter(s => s.work_day_id === wd.id)
         const metrics = calculateMetrics([wd], daySessions)
@@ -112,9 +128,13 @@ function HistoryPage() {
         <div className="space-y-3">
           {visibleDays.length === 0 && (
             <div className="rounded-2xl border border-border bg-card p-12 text-center space-y-2">
-              <p className="text-muted-foreground text-xs uppercase tracking-[0.2em] font-bold">Nenhum registro</p>
+              <p className="text-muted-foreground text-xs uppercase tracking-[0.2em] font-bold">
+                Nenhuma jornada encontrada para o período selecionado
+              </p>
               <p className="text-muted-foreground/60 text-[11px]">
-                Novas jornadas aparecerão aqui após serem finalizadas no bot.
+                {filter === 'todos'
+                  ? 'Novas jornadas aparecerão aqui após serem finalizadas no bot.'
+                  : 'Tente selecionar “Todos” para ver o histórico completo.'}
               </p>
             </div>
           )}
