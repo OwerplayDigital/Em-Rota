@@ -12,6 +12,7 @@ import {
   formatCurrency,
   formatDuration
 } from '@/lib/dashboard-utils'
+import { toCents, fromCents } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_authenticated/desempenho')({
@@ -64,11 +65,13 @@ function PerformancePage() {
   const platform = useMemo(() => {
     const ifood = metrics.totalIfood
     const uber = metrics.totalUber
-    const total = ifood + uber
+    // Soma em centavos para nunca perder centavos na comparação
+    const totalCents = toCents(ifood) + toCents(uber)
+    const total = fromCents(totalCents)
     return {
       ifood, uber, total,
-      ifoodPct: total > 0 ? (ifood / total) * 100 : 0,
-      uberPct: total > 0 ? (uber / total) * 100 : 0,
+      ifoodPct: totalCents > 0 ? (toCents(ifood) / totalCents) * 100 : 0,
+      uberPct: totalCents > 0 ? (toCents(uber) / totalCents) * 100 : 0,
     }
   }, [metrics])
 
@@ -78,7 +81,8 @@ function PerformancePage() {
     let bestPerHour = 0
 
     data.workDays.forEach(wd => {
-      maxEarned = Math.max(maxEarned, wd.total_earned || 0)
+      const earnedCents = toCents(wd.total_earned)
+      maxEarned = Math.max(maxEarned, earnedCents)
       maxDeliveries = Math.max(maxDeliveries, wd.total_deliveries || 0)
       const daySessions = data.sessions.filter(s => s.work_day_id === wd.id)
       const dayMetrics = calculateMetrics([wd], daySessions)
@@ -87,7 +91,11 @@ function PerformancePage() {
       }
     })
 
-    return { maxEarned, maxDeliveries, bestPerHour }
+    return {
+      maxEarned: fromCents(maxEarned),
+      maxDeliveries,
+      bestPerHour,
+    }
   }, [data])
 
   return (
@@ -128,7 +136,7 @@ function PerformancePage() {
 
         {/* Grid de Métricas 2x3 */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <MetricCard icon={Wallet} label="Ganhos médios/dia" value={formatCurrency(metrics.totalEarned / avgDays)} />
+          <MetricCard icon={Wallet} label="Ganhos médios/dia" value={formatCurrency(fromCents(Math.round(toCents(metrics.totalEarned) / avgDays)))} />
           <MetricCard icon={TrendingUp} label="Ganhos por hora" value={metrics.avgPerHour > 0 ? `${formatCurrency(metrics.avgPerHour)}/h` : '—'} />
           <MetricCard icon={Gauge} label="Ganhos por km" value={metrics.avgPerKm > 0 ? `${formatCurrency(metrics.avgPerKm)}/km` : '—'} />
           <MetricCard icon={Zap} label="Entregas por hora" value={metrics.deliveriesPerHour > 0 ? metrics.deliveriesPerHour.toFixed(1) : '—'} />
@@ -165,14 +173,14 @@ function PerformancePage() {
               dotColor="bg-red-500"
               pct={platform.ifoodPct}
               total={platform.ifood}
-              avgPerDelivery={metrics.totalDeliveries > 0 ? platform.ifood / metrics.totalDeliveries : 0}
+              avgPerDelivery={metrics.totalDeliveries > 0 ? fromCents(Math.round(toCents(platform.ifood) / metrics.totalDeliveries)) : 0}
             />
             <PlatformCompareRow
               label="Uber"
               dotColor="bg-slate-800"
               pct={platform.uberPct}
               total={platform.uber}
-              avgPerDelivery={metrics.totalDeliveries > 0 ? platform.uber / metrics.totalDeliveries : 0}
+              avgPerDelivery={metrics.totalDeliveries > 0 ? fromCents(Math.round(toCents(platform.uber) / metrics.totalDeliveries)) : 0}
             />
           </div>
         </div>

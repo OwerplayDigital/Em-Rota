@@ -1,4 +1,5 @@
 import { supabaseAdmin } from './client.server';
+import { toCents, fromCents } from '@/lib/money';
 
 export const getDashboardData = async (startDate: string, endDate: string) => {
   if (!startDate || !endDate) throw new Error("startDate and endDate are required");
@@ -44,6 +45,8 @@ export const getDashboardData = async (startDate: string, endDate: string) => {
 
 export const updateDailyGoal = async (goal: number) => {
   const todayStr = new Date().toISOString().split('T')[0];
+  // Garante precisão monetária de centavos: NUMERIC(10,2)
+  const goalRounded = fromCents(toCents(goal));
   
   // Update or insert for today
   const { data: existing } = await supabaseAdmin
@@ -55,7 +58,7 @@ export const updateDailyGoal = async (goal: number) => {
   if (existing) {
     const { error } = await supabaseAdmin
       .from('work_days')
-      .update({ daily_goal: goal })
+      .update({ daily_goal: goalRounded })
       .eq('id', (existing as any).id);
     if (error) throw error;
   } else {
@@ -63,7 +66,7 @@ export const updateDailyGoal = async (goal: number) => {
       .from('work_days')
       .insert({ 
         date: todayStr, 
-        daily_goal: goal,
+        daily_goal: goalRounded,
         status: 'in_progress' 
       } as any);
     if (error) throw error;

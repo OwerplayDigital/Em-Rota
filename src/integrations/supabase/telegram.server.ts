@@ -1,4 +1,5 @@
 import { supabaseAdmin } from './client.server';
+import { toCents, fromCents } from '@/lib/money';
 
 export const handleTelegramUpdate = async (body: any) => {
   const botToken = (process.env['TELEGRAM_BOT_TOKEN'] ?? '') as string;
@@ -116,15 +117,17 @@ export const handleTelegramUpdate = async (body: any) => {
     const distance = (day.odometer_end !== null && day.odometer_start !== null) ? (Number(day.odometer_end) - Number(day.odometer_start)) : null;
     const hours = totalMs / 3600000;
     
-    const perHour = (hours > 0 && day.total_earned !== null) ? (day.total_earned / hours) : null;
-    const perKm = (distance && distance > 0 && day.total_earned !== null) ? (day.total_earned / distance) : null;
-    const perDelivery = (day.total_deliveries && day.total_deliveries > 0 && day.total_earned !== null) ? (day.total_earned / day.total_deliveries) : null;
+    const earnedCents = toCents(day.total_earned);
+    const perHour = (hours > 0 && day.total_earned !== null) ? fromCents(Math.round(earnedCents / hours)) : null;
+    const perKm = (distance && distance > 0 && day.total_earned !== null) ? fromCents(Math.round(earnedCents / distance)) : null;
+    const perDelivery = (day.total_deliveries && day.total_deliveries > 0 && day.total_earned !== null) ? fromCents(Math.round(earnedCents / day.total_deliveries)) : null;
 
+    const goalCents = toCents(day.daily_goal);
     const goalStr = day.daily_goal !== null ? 
       `\n<b>META DO DIA</b>\n` +
       `${formatCurrency(day.total_earned)} / ${formatCurrency(day.daily_goal)}\n` +
-      `${((day.total_earned || 0) / day.daily_goal * 100).toFixed(1)}%${day.total_earned >= day.daily_goal ? ' - META ATINGIDA' : ''}\n` +
-      `${day.total_earned < day.daily_goal ? `Faltam: ${formatCurrency(day.daily_goal - day.total_earned)}` : 'Meta Atingida'}\n` : '';
+      `${(goalCents > 0 ? (earnedCents / goalCents) * 100 : 0).toFixed(1)}%${earnedCents >= goalCents ? ' - META ATINGIDA' : ''}\n` +
+      `${earnedCents < goalCents ? `Faltam: ${formatCurrency(fromCents(goalCents - earnedCents))}` : 'Meta Atingida'}\n` : '';
 
     return `<b>RESUMO DE ${formatDateBR(day.date)}</b>\n\n` +
       `<b>Ganhos:</b>\n${formatCurrency(day.total_earned)} (Uber: ${formatCurrency(day.uber_earned)} | iFood: ${formatCurrency(day.ifood_earned)})\n\n` +
@@ -343,11 +346,13 @@ export const handleTelegramUpdate = async (body: any) => {
 
     const distance = (day.odometer_end !== null && day.odometer_start !== null) ? (day.odometer_end - day.odometer_start) : null;
 
+    const earnedCents = toCents(day.total_earned);
+    const goalCents = toCents(day.daily_goal);
     const goalStr = day.daily_goal !== null ? 
       `\n\n<b>META DO DIA</b>\n` +
       `${formatCurrency(day.total_earned)} / ${formatCurrency(day.daily_goal)}\n` +
-      `${((day.total_earned || 0) / day.daily_goal * 100).toFixed(1)}% atingido\n` +
-      `${day.total_earned < day.daily_goal ? `Faltam: ${formatCurrency(day.daily_goal - day.total_earned)}` : 'Meta Atingida'}` : '';
+      `${(goalCents > 0 ? (earnedCents / goalCents) * 100 : 0).toFixed(1)}% atingido\n` +
+      `${earnedCents < goalCents ? `Faltam: ${formatCurrency(fromCents(goalCents - earnedCents))}` : 'Meta Atingida'}` : '';
 
     await send(`<b>JORNADA ENCERRADA</b>\n\nDuração desta jornada: ${formatDuration(thisSessionMs)}\n\n<b>TOTAL DE ${formatDateBR(day.date)}:</b>\nTempo na rua: ${formatDuration(totalMs)}\nGanhos: ${formatCurrency(day.total_earned)}\nEntregas: ${day.total_deliveries ?? 'Ainda não informado'}${goalStr}`, {
       keyboard: [[{ text: 'INICIAR JORNADA' }, { text: 'FECHAR DIA' }], [{ text: 'EXCLUIR JORNADA' }, { text: 'RESUMO' }], [{ text: 'LIMPAR CHAT' }], [{ text: 'MENU' }]],
@@ -706,9 +711,9 @@ export const handleTelegramUpdate = async (body: any) => {
         const newUber = isUber ? num : currentUber;
         const newIfood = !isUber ? num : currentIfood;
         
-        update.uber_earned = newUber;
-        update.ifood_earned = newIfood;
-        update.total_earned = newUber + newIfood;
+        update.uber_earned = fromCents(toCents(newUber));
+        update.ifood_earned = fromCents(toCents(newIfood));
+        update.total_earned = fromCents(toCents(newUber) + toCents(newIfood));
       } else if (mode === 'EARNED') {
       // Fluxo antigo (ganhos totais): redireciona para escolher a plataforma,
       // garantindo que o valor caia em uber_earned/ifood_earned e nunca "vire Extra".
@@ -781,7 +786,7 @@ export const handleTelegramUpdate = async (body: any) => {
         await send('⚠️ Valor inválido. Informe o ganho na Uber (ou 0):', cancelMenu);
         return;
       }
-      await (supabaseAdmin.from('work_days').update({ uber_earned: num, notes: 'AWAITING:CLOSE_IFOOD' }).eq('id', activeDay.id) as any);
+      await (supabaseAdmin.from('work_days').update({ uber_earned: fromCents(toCents(num)), notes: 'AWAITING:CLOSE_IFOOD' }).eq('id', activeDay.id) as any);
       await send('iFood:', cancelMenu);
       return;
     }
@@ -791,9 +796,9 @@ export const handleTelegramUpdate = async (body: any) => {
         await send('⚠️ Valor inválido. Informe o ganho no iFood (ou 0):', cancelMenu);
         return;
       }
-      const totalEarned = num + (Number(activeDay.uber_earned) || 0);
+      const totalEarned = fromCents(toCents(num) + toCents(activeDay.uber_earned));
       await (supabaseAdmin.from('work_days').update({ 
-        ifood_earned: num, 
+        ifood_earned: fromCents(toCents(num)), 
         total_earned: totalEarned,
         notes: 'AWAITING:CLOSE_DELIVERIES' 
       }).eq('id', activeDay.id) as any);

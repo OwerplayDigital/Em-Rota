@@ -38,6 +38,7 @@ import {
   formatDuration,
   formatDateBR,
 } from '@/lib/dashboard-utils'
+import { toCents, fromCents } from '@/lib/money'
 
 export const Route = createFileRoute('/_authenticated/dashboard')({
   component: DashboardPage,
@@ -65,7 +66,8 @@ function DashboardPage() {
 
   const metrics = useMemo(() => calculateMetrics(data.workDays, data.sessions), [data])
 
-  const extraEarned = Math.max(0, metrics.totalEarned - metrics.totalUber - metrics.totalIfood)
+  // Extra = Total − Uber − iFood, calculado em centavos inteiros
+  const extraEarned = Math.max(0, fromCents(toCents(metrics.totalEarned) - toCents(metrics.totalUber) - toCents(metrics.totalIfood)))
 
   // Status da jornada (baseado em dados de hoje)
   const todayStr = useMemo(() => {
@@ -96,7 +98,7 @@ function DashboardPage() {
     ...p,
     share: metrics.totalEarned > 0 ? (p.earned / metrics.totalEarned) * 100 : 0,
     deliveries: Math.round(metrics.totalDeliveries * (metrics.totalEarned > 0 ? p.earned / metrics.totalEarned : 0)),
-    avg: metrics.totalDeliveries > 0 ? p.earned / Math.max(1, Math.round(metrics.totalDeliveries * (p.earned / metrics.totalEarned))) : 0,
+    avg: p.earned > 0 && metrics.totalDeliveries > 0 ? fromCents(Math.round(toCents(p.earned) / Math.max(1, Math.round(metrics.totalDeliveries * (p.earned / metrics.totalEarned))))) : 0,
   }))
 
   const chartData = useMemo(() => getChartData(data.workDays, data.sessions), [data])

@@ -15,6 +15,7 @@ import {
   formatCurrency,
   calculateMetrics
 } from '@/lib/dashboard-utils'
+import { toCents, fromCents } from '@/lib/money'
 
 export const Route = createFileRoute('/_authenticated/historico')({
   component: HistoryPage,
@@ -171,9 +172,9 @@ function HistoryCard({ item, expanded, onToggle }: { item: any; expanded: boolea
 
   const uber = Number(item.uber_earned || 0)
   const ifood = Number(item.ifood_earned || 0)
-  const extra = Math.max(0, (item.total_earned || 0) - uber - ifood)
+  const extra = Math.max(0, fromCents(toCents(item.total_earned) - toCents(uber) - toCents(ifood)))
   const deliveries = item.total_deliveries || 0
-  const avgPerDelivery = deliveries > 0 ? (item.total_earned || 0) / deliveries : 0
+  const avgPerDelivery = deliveries > 0 ? fromCents(Math.round(toCents(item.total_earned) / deliveries)) : 0
 
   return (
     <div

@@ -1,5 +1,6 @@
 import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
+import { toCents, fromCents } from './money';
 
 const TIMEZONE = 'America/Sao_Paulo';
 
@@ -63,9 +64,14 @@ export const formatCurrency = (value: number) => {
 };
 
 export const calculateMetrics = (workDays: any[], sessions: any[]) => {
-  const totalEarned = workDays.reduce((acc, wd) => acc + (wd.total_earned || 0), 0);
-  const totalUber = workDays.reduce((acc, wd) => acc + (wd.uber_earned || 0), 0);
-  const totalIfood = workDays.reduce((acc, wd) => acc + (wd.ifood_earned || 0), 0);
+  // Todas as somas monetárias são feitas em centavos inteiros para nunca perder centavos
+  const totalEarnedCents = workDays.reduce((acc, wd) => acc + toCents(wd.total_earned), 0);
+  const totalUberCents = workDays.reduce((acc, wd) => acc + toCents(wd.uber_earned), 0);
+  const totalIfoodCents = workDays.reduce((acc, wd) => acc + toCents(wd.ifood_earned), 0);
+
+  const totalEarned = fromCents(totalEarnedCents);
+  const totalUber = fromCents(totalUberCents);
+  const totalIfood = fromCents(totalIfoodCents);
   const totalDeliveries = workDays.reduce((acc, wd) => acc + (wd.total_deliveries || 0), 0);
   
   const totalDistance = workDays.reduce((acc, wd) => {
@@ -92,9 +98,9 @@ export const calculateMetrics = (workDays: any[], sessions: any[]) => {
     totalDistance,
     totalMs,
     totalHours,
-    avgPerHour: totalHours > 0 ? totalEarned / totalHours : 0,
-    avgPerKm: totalDistance > 0 ? totalEarned / totalDistance : 0,
-    avgPerDelivery: totalDeliveries > 0 ? totalEarned / totalDeliveries : 0,
+    avgPerHour: totalHours > 0 ? fromCents(Math.round(totalEarnedCents / totalHours)) : 0,
+    avgPerKm: totalDistance > 0 ? fromCents(Math.round(totalEarnedCents / totalDistance)) : 0,
+    avgPerDelivery: totalDeliveries > 0 ? fromCents(Math.round(totalEarnedCents / totalDeliveries)) : 0,
     deliveriesPerHour: totalHours > 0 ? totalDeliveries / totalHours : 0,
   };
 };
@@ -104,15 +110,16 @@ export const calculateGoalMetrics = (workDays: any[], goal: number | null) => {
 
   const todayStr = new Date().toISOString().split('T')[0];
   const todayData = workDays.find(wd => wd.date === todayStr);
-  const earnings = todayData?.total_earned || 0;
-  
-  const progress = (earnings / goal) * 100;
-  const remaining = Math.max(0, goal - earnings);
-  const isReached = earnings >= goal;
+  const earningsCents = toCents(todayData?.total_earned);
+  const goalCents = toCents(goal);
+
+  const progress = goalCents > 0 ? (earningsCents / goalCents) * 100 : 0;
+  const remaining = fromCents(Math.max(0, goalCents - earningsCents));
+  const isReached = earningsCents >= goalCents;
 
   return {
-    goal,
-    earnings,
+    goal: fromCents(goalCents),
+    earnings: fromCents(earningsCents),
     progress,
     remaining,
     isReached
