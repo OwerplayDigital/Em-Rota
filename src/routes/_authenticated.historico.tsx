@@ -81,7 +81,7 @@ function HistoryPage() {
       <div className="mx-auto max-w-2xl px-5 pb-16 pt-6 md:px-10 md:pt-10 space-y-6">
         {/* Cabeçalho */}
         <div className="flex items-center gap-4">
-          <div className="w-11 shrink-0 md:hidden" aria-hidden="true" />
+          <div className="w-14 shrink-0 md:hidden" aria-hidden="true" />
           <div className="min-w-0 space-y-0.5">
             <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Histórico</h1>
             <p className="text-muted-foreground text-[11px] font-light tracking-wide uppercase">

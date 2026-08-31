@@ -99,7 +99,7 @@ function PerformancePage() {
       >
         {/* Cabeçalho */}
         <div className="flex items-center gap-4">
-          <div className="w-11 shrink-0 md:hidden" aria-hidden="true" />
+          <div className="w-14 shrink-0 md:hidden" aria-hidden="true" />
           <div className="min-w-0 space-y-0.5">
             <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Desempenho</h1>
             <p className="text-muted-foreground text-[11px] font-light tracking-wide uppercase">

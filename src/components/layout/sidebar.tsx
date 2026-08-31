@@ -37,12 +37,15 @@ export function Sidebar() {
 
   return (
     <>
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-5 left-5 z-[110] md:hidden p-3 bg-primary/10 border border-primary/20 rounded-2xl backdrop-blur-xl text-primary hover:text-primary/80 transition-all active:scale-95"
-      >
-        {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-      </button>
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          aria-label="Abrir menu"
+          className="fixed top-6 left-5 z-[110] md:hidden text-foreground/70 hover:text-primary transition-colors"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+      )}
 
       {isOpen && (
         <div 

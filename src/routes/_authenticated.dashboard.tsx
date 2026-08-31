@@ -51,7 +51,7 @@ const C = {
   title: '#0f172a',
   sub: '#475569',
   border: '#e2e8f0',
-  accent: '#0f172a',
+  accent: '#2563eb',
 }
 
 function DashboardPage() {
